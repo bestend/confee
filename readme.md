@@ -1,0 +1,307 @@
+<p align="center">
+  <img src="assets/logo.png" width="360" />
+</p>
+
+<div align="center">
+
+**Language:** [한국어](./readme.ko.md) | English
+
+Hydra-style Configuration Management + Pydantic Type Safety + Typer-style Auto Help Generation
+
+[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Status](https://img.shields.io/badge/status-alpha-yellow)](https://github.com/bestend/confee)
+
+</div>
+
+---
+
+## ☕️ Overview
+
+**confee** is a package that makes configuration management in Python applications simple, type-safe, and intuitive. It combines the best of Hydra and Pydantic, allowing you to manage configuration files, environment variables, and CLI arguments seamlessly.
+
+---
+
+## ✨ Key Features
+
+- **🎯 Type-Safe Configuration** — Automatic type validation & IDE autocomplete with Pydantic V2
+- **📋 Multi-Format Support** — Automatic detection and parsing of YAML and JSON
+- **🔄 Flexible Override System** — Override values via CLI arguments and environment variables
+- **🏗️ Configuration Inheritance** — Merge and combine parent-child configurations
+- **📁 File Reference** — Load file contents with `@file:` & `@config:` prefixes
+- **🔐 Strict Mode** — Reject unknown fields or control validation error handling
+- **📦 Zero Configuration** — Ready to use with sensible defaults
+- **⚙️ Parse Order Control** — Freely adjust priority of file/env/cli sources
+- **💬 Auto Help Generation** — Display all options and defaults with `--help` flag
+- **🪆 Nested Field Access** — Override nested fields with dot notation (database.host=localhost)
+- **🧾 Verbosity Control** — Adjust output verbosity with `--quiet`/`--verbose`/`--no-color` flags
+
+---
+
+## 📦 Installation
+
+```bash
+pip install confee
+```
+
+Or with uv:
+
+```bash
+uv pip install confee
+```
+
+Or from source (development):
+
+```bash
+git clone https://github.com/bestend/confee.git
+cd confee
+pip install -e .
+```
+
+---
+
+## 🚀 Quick Start
+
+### Basic Usage
+
+```python
+from confee import ConfigBase
+
+class AppConfig(ConfigBase):
+    name: str
+    debug: bool = False
+    workers: int = 4
+
+# Parse from all sources (file, environment, CLI)
+config = AppConfig.load(config_file="config.yaml")
+
+print(config.name)     # Type-safe access
+print(config.debug)    # Full IDE support
+print(config.workers)  # Auto-completion enabled
+```
+
+### YAML Configuration File
+
+```yaml
+name: production-app
+debug: false
+workers: 8
+```
+
+### Command Line Override
+
+```bash
+python app.py name=my-app debug=true workers=16
+```
+
+### Environment Variables
+
+```bash
+export CONFEE_NAME=my-app
+export CONFEE_DEBUG=true
+export CONFEE_WORKERS=16
+
+python app.py
+```
+
+### Help Display
+
+```bash
+python app.py --help
+```
+
+---
+
+## 🎯 Advanced Features
+
+### Nested Configuration
+
+```python
+from confee import ConfigBase
+
+class DatabaseConfig(ConfigBase):
+    host: str = "localhost"
+    port: int = 5432
+
+class AppConfig(ConfigBase):
+    name: str
+    database: DatabaseConfig
+
+# Override nested fields from CLI
+# python app.py database.host=prod.db database.port=3306
+config = AppConfig.load()
+print(config.database.host)  # "prod.db"
+```
+
+### File References
+
+```yaml
+# config.yaml
+name: my-app
+api_key: "@file:secrets/api_key.txt"
+database_config: "@config:configs/database.yaml"
+```
+
+### Custom Environment Prefix
+
+```python
+# Use custom prefix instead of CONFEE_
+# MYAPP_DEBUG=true instead of CONFEE_DEBUG=true
+config = AppConfig.load(env_prefix="MYAPP_")
+```
+
+### Custom Source Order
+
+```python
+# Control which sources override others
+config = AppConfig.load(
+    config_file="config.yaml",
+    source_order=["cli", "env", "file"]  # CLI highest priority
+)
+```
+
+### Strict/Non-Strict Modes
+
+```python
+# Strict mode (default): Forbid unknown fields
+class Config(ConfigBase):
+    name: str
+
+# Non-strict mode: Ignore unknown fields
+config = Config.load(strict=False)
+```
+
+---
+
+## 📚 Documentation
+
+- [Comparison with OmegaConf](./comparison.md)
+- [Development Guide](./development.md)
+- [License](./license)
+
+---
+
+## 🎯 Use Cases
+
+### Environment-specific Configuration
+
+```python
+# dev.yaml
+debug: true
+workers: 2
+
+# prod.yaml
+debug: false
+workers: 32
+
+# Load appropriate config
+import os
+env = os.getenv("APP_ENV", "dev")
+config = AppConfig.load(config_file=f"{env}.yaml")
+```
+
+### Kubernetes Environment Variables
+
+```yaml
+# pod.yaml
+containers:
+  - env:
+    - name: CONFEE_DEBUG
+      value: "false"
+    - name: CONFEE_WORKERS
+      value: "16"
+```
+
+### Configuration Validation
+
+```python
+from pydantic import Field
+
+class AppConfig(ConfigBase):
+    workers: int = Field(ge=1, le=128)  # Validate range
+    timeout: float = Field(gt=0)         # Must be positive
+```
+
+---
+
+## 🔄 Integration Examples
+
+### With FastAPI
+
+```python
+from fastapi import FastAPI
+from confee import ConfigBase
+
+class AppConfig(ConfigBase):
+    title: str = "My API"
+    debug: bool = False
+
+config = AppConfig.load()
+app = FastAPI(title=config.title, debug=config.debug)
+```
+
+### With Click
+
+```python
+import click
+from confee import ConfigBase
+
+class AppConfig(ConfigBase):
+    name: str
+
+config = AppConfig.load()
+
+@click.command()
+def main():
+    click.echo(f"Hello {config.name}")
+```
+
+---
+
+## ✅ Testing Your Configuration
+
+```python
+def test_config_loading():
+    config = AppConfig.load(
+        config_file="tests/fixtures/config.yaml",
+        cli_args=["debug=true"],
+        strict=True
+    )
+    assert config.debug is True
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Write tests for your changes
+4. Submit a pull request
+
+---
+
+## 📜 License
+
+MIT License © 2025
+
+See [LICENSE](./license) for details.
+
+---
+
+## 💬 Support
+
+For issues and questions:
+- GitHub Issues: https://github.com/bestend/confee/issues
+- GitHub Discussions: https://github.com/bestend/confee/discussions
+
+---
+
+**Enjoy ☕️ configuration management!**
+
+---
+
+**Language:** [한국어](./readme.ko.md) | English
+

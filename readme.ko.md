@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" width="360" />
+  <img src="https://raw.githubusercontent.com/bestend/confee/main/assets/logo.png" width="360" />
 </p>
 
 <div align="center">

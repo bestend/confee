@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "confee"
-version = "0.1.2"
+version = "0.0.dev"  # Auto-updated by GitHub Actions when tag is pushed
 description = "Configuration Enhanced & Easy ☕️ - A Hydra-like configuration parser helper package"
 readme = "readme.md"
 requires-python = ">=3.8"

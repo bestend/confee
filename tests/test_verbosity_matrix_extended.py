@@ -1,11 +1,9 @@
-"""
-Extended tests to increase coverage for verbosity, color handling,
+"""Extended tests to increase coverage for verbosity, color handling,
 and edge branches in OverrideHandler.parse and helpers.
 """
 
 import io
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -19,7 +17,7 @@ class _Cfg(ConfigBase):
 
 def test_errorformatter_validation_verbose_and_compact(monkeypatch):
     """Cover verbose and compact formatting branches for validation errors."""
-    from confee.overrides import ErrorFormatter, Color
+    from confee.overrides import Color, ErrorFormatter
 
     # Create a Pydantic validation error by instantiating without required field
     with pytest.raises(Exception) as ei:
@@ -49,8 +47,9 @@ def test_errorformatter_validation_verbose_and_compact(monkeypatch):
 
 def test_helpformatter_required_omits_default_and_factory_and_none(monkeypatch):
     """Ensure default segment omitted for required, and present for factory/None values."""
-    from pydantic import Field
     from typing import Optional
+
+    from pydantic import Field
 
     class CF(ConfigBase):
         req: str
@@ -81,7 +80,10 @@ def test_parse_env_cli_verbosity_and_no_color(monkeypatch):
         cfg = OverrideHandler.parse(
             _Cfg,
             config_file="this_file_should_not_exist.yaml",
-            cli_args=["--verbose", "name=test"],  # CLI verbose overrides ENV; also ensures color enabled unless --no-color present
+            cli_args=[
+                "--verbose",
+                "name=test",
+            ],  # CLI verbose overrides ENV; also ensures color enabled unless --no-color present
             source_order=["file", "cli"],
             strict=False,
         )
@@ -153,6 +155,7 @@ def test_help_flag_triggers_help_and_exit(monkeypatch):
 
 def test_configbase_set_strict_mode_toggles_model_config():
     """Exercise ConfigBase.set_strict_mode True/False branches."""
+
     class C(ConfigBase):
         a: int = 1
 
@@ -178,6 +181,7 @@ class TestVerbosityFlags:
 
         monkeypatch.setenv("CONFEE_VERBOSITY", "verbose")
         import io
+
         buf = io.StringIO()
         old = sys.stdout
         sys.stdout = buf
@@ -201,13 +205,16 @@ class TestVerbosityFlags:
 
         monkeypatch.setenv("CONFEE_QUIET", "1")
         import io
+
         buf = io.StringIO()
         old = sys.stdout
         sys.stdout = buf
         try:
             # Missing name to produce validation output once in verbose
             with pytest.raises(SystemExit):
-                OverrideHandler.parse(Cfg, cli_args=["--verbose"], source_order=["cli"], strict=False)
+                OverrideHandler.parse(
+                    Cfg, cli_args=["--verbose"], source_order=["cli"], strict=False
+                )
         finally:
             sys.stdout = old
         out = buf.getvalue()
@@ -223,13 +230,16 @@ class TestVerbosityFlags:
             debug: bool = False
 
         import io
+
         buf = io.StringIO()
         old = sys.stdout
         sys.stdout = buf
         try:
             # cause validation error and disable colors via alias
             with pytest.raises(SystemExit):
-                OverrideHandler.parse(Cfg, cli_args=["--no-colors"], source_order=["cli"], strict=False)
+                OverrideHandler.parse(
+                    Cfg, cli_args=["--no-colors"], source_order=["cli"], strict=False
+                )
         finally:
             sys.stdout = old
         out = buf.getvalue()
@@ -265,4 +275,3 @@ class TestVerbosityFlags:
         Color.enable(False)
         # When disabled, reset property returns empty string
         assert c.reset == ""
-

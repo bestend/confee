@@ -56,10 +56,7 @@ class TestErrorFormatter:
             X()
         msg = ErrorFormatter.format_validation_error(ei.value, style="compact")
         # Either explicit field or generic validation failed message
-        assert (
-            "missing required field 'name'" in msg
-            or msg == "Config error: validation failed"
-        )
+        assert "missing required field 'name'" in msg or msg == "Config error: validation failed"
 
     def test_compact_non_validation_error(self):
         err = RuntimeError("boom")

@@ -1,6 +1,4 @@
-"""
-Tests for confee.loaders module - Configuration file loading and parsing.
-"""
+"""Tests for confee.loaders module - Configuration file loading and parsing."""
 
 import json
 import tempfile
@@ -9,12 +7,13 @@ from pathlib import Path
 import pytest
 import yaml
 
-from confee import ConfigBase, load_from_file, load_config
+from confee import ConfigBase, load_config, load_from_file
 from confee.loaders import ConfigLoader
 
 
 class SampleConfig(ConfigBase):
     """Sample configuration for testing."""
+
     name: str
     debug: bool = False
     workers: int = 4
@@ -145,8 +144,10 @@ class TestLoadFromFile:
 
     def test_load_from_file_lenient_mode(self):
         """Test lenient mode (strict=False) handles validation errors gracefully."""
+
         class OptionalConfig(ConfigBase):
             """Config with all optional fields."""
+
             debug: bool = False
             workers: int = 4
 
@@ -253,4 +254,3 @@ debug: true
             assert data["debug"] is True
         finally:
             Path(temp_path).unlink()
-

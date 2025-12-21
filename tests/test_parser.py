@@ -1,6 +1,4 @@
-"""
-Tests for confee.parser module - Advanced configuration parsing with Hydra-like features.
-"""
+"""Tests for confee.parser module - Advanced configuration parsing with Hydra-like features."""
 
 import tempfile
 from pathlib import Path
@@ -14,6 +12,7 @@ from confee.parser import ConfigParser
 
 class SampleConfig(ConfigBase):
     """Sample configuration for testing."""
+
     name: str
     debug: bool = False
     workers: int = 4
@@ -89,8 +88,6 @@ class TestConfigParser:
             assert config.workers == 8
 
 
-
-
 class TestConfigParserDefaults:
     """Test Hydra-style defaults resolution."""
 
@@ -104,11 +101,7 @@ class TestConfigParserDefaults:
 
             parser = ConfigParser(temp_dir)
 
-            config_dict = {
-                "defaults": ["base"],
-                "name": "myapp",
-                "debug": True
-            }
+            config_dict = {"defaults": ["base"], "name": "myapp", "debug": True}
 
             resolved = parser.resolve_defaults(config_dict)
 
@@ -130,7 +123,7 @@ class TestConfigParserDefaults:
             config_dict = {
                 "defaults": ["base", "_self_"],
                 "name": "myapp",
-                "debug": True  # Overrides base
+                "debug": True,  # Overrides base
             }
 
             resolved = parser.resolve_defaults(config_dict)
@@ -155,7 +148,7 @@ class TestConfigParserDefaults:
 
             config_dict = {
                 "defaults": ["base1", "base2"],  # base2 overrides base1
-                "name": "myapp"
+                "name": "myapp",
             }
 
             resolved = parser.resolve_defaults(config_dict)
@@ -167,15 +160,11 @@ class TestConfigParserDefaults:
         with tempfile.TemporaryDirectory() as temp_dir:
             parser = ConfigParser(temp_dir, strict=False)
 
-            config_dict = {
-                "defaults": ["missing"],
-                "name": "myapp"
-            }
+            config_dict = {"defaults": ["missing"], "name": "myapp"}
 
             # Should not raise error in lenient mode
             resolved = parser.resolve_defaults(config_dict)
             assert resolved["name"] == "myapp"
-
 
 
 class TestConfigParserEdgeCases:
@@ -207,4 +196,3 @@ class TestConfigParserEdgeCases:
             # Should handle gracefully (empty YAML returns None)
             data = parser.load_config_file("config")
             assert data is None or data == {}
-

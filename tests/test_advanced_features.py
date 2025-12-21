@@ -1,20 +1,19 @@
-"""
-Tests for advanced features: file references, parsing configuration, help formatter, and unified parse().
-"""
+"""Tests for advanced features: file references, parsing configuration, help formatter, and unified parse()."""
 
+import sys
 import tempfile
+from io import StringIO
 from pathlib import Path
+
 import pytest
 import yaml
-import sys
-from io import StringIO
 
 from confee import (
     ConfigBase,
     ConfigLoader,
     ConfigParser,
-    OverrideHandler,
     HelpFormatter,
+    OverrideHandler,
 )
 
 
@@ -195,10 +194,7 @@ class TestParsingConfiguration:
     def test_parser_with_custom_source_order(self):
         """Test parser with custom source order."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            parser = ConfigParser(
-                temp_dir,
-                source_order=["file", "env"]
-            )
+            parser = ConfigParser(temp_dir, source_order=["file", "env"])
             assert parser.source_order == ["file", "env"]
 
     def test_parser_with_invalid_source(self):
@@ -210,10 +206,7 @@ class TestParsingConfiguration:
     def test_parser_with_file_only_source(self):
         """Test parser with file-only source order."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            parser = ConfigParser(
-                temp_dir,
-                source_order=["file"]
-            )
+            parser = ConfigParser(temp_dir, source_order=["file"])
             assert parser.source_order == ["file"]
 
 
@@ -231,21 +224,15 @@ class TestHelpFormatter:
 
     def test_generate_help_with_custom_program_name(self):
         """Test help text with custom program name."""
-        help_text = HelpFormatter.generate_help(
-            SampleConfig,
-            program_name="myapp"
-        )
+        help_text = HelpFormatter.generate_help(SampleConfig, program_name="myapp")
         assert "myapp" in help_text
 
     def test_generate_help_with_description(self):
         """Test help text with custom description."""
         help_text = HelpFormatter.generate_help(
-            SampleConfig,
-            description="My application configuration"
+            SampleConfig, description="My application configuration"
         )
         assert "My application configuration" in help_text
-
-
 
 
 class TestUnifiedParse:
@@ -254,8 +241,7 @@ class TestUnifiedParse:
     def test_parse_with_cli_args(self):
         """Test parse with CLI arguments."""
         config = OverrideHandler.parse(
-            SampleConfig,
-            cli_args=["name=production", "debug=true", "workers=16"]
+            SampleConfig, cli_args=["name=production", "debug=true", "workers=16"]
         )
         assert config.name == "production"
         assert config.debug is True
@@ -265,16 +251,9 @@ class TestUnifiedParse:
         """Test parse with config file."""
         with tempfile.TemporaryDirectory() as temp_dir:
             config_file = Path(temp_dir) / "config.yaml"
-            config_file.write_text(yaml.dump({
-                "name": "from-file",
-                "workers": 8
-            }))
+            config_file.write_text(yaml.dump({"name": "from-file", "workers": 8}))
 
-            config = OverrideHandler.parse(
-                SampleConfig,
-                config_file=str(config_file),
-                cli_args=[]
-            )
+            config = OverrideHandler.parse(SampleConfig, config_file=str(config_file), cli_args=[])
             assert config.name == "from-file"
             assert config.workers == 8
 
@@ -283,10 +262,7 @@ class TestUnifiedParse:
         monkeypatch.setenv("CONFEE_NAME", "from-env")
         monkeypatch.setenv("CONFEE_WORKERS", "12")
 
-        config = OverrideHandler.parse(
-            SampleConfig,
-            cli_args=[]
-        )
+        config = OverrideHandler.parse(SampleConfig, cli_args=[])
         assert config.name == "from-env"
         assert config.workers == 12
 
@@ -295,21 +271,14 @@ class TestUnifiedParse:
         monkeypatch.setenv("CONFEE_DEBUG", "false")
         monkeypatch.setenv("CONFEE_NAME", "env-name")
 
-        config = OverrideHandler.parse(
-            SampleConfig,
-            cli_args=["debug=true"]
-        )
+        config = OverrideHandler.parse(SampleConfig, cli_args=["debug=true"])
         assert config.debug is True
 
     def test_parse_with_custom_env_prefix(self, monkeypatch):
         """Test parse with custom environment prefix."""
         monkeypatch.setenv("MYAPP_NAME", "custom-prefix")
 
-        config = OverrideHandler.parse(
-            SampleConfig,
-            env_prefix="MYAPP_",
-            cli_args=[]
-        )
+        config = OverrideHandler.parse(SampleConfig, env_prefix="MYAPP_", cli_args=[])
         assert config.name == "custom-prefix"
 
     def test_parse_with_custom_source_order(self):
@@ -317,16 +286,13 @@ class TestUnifiedParse:
         # File-only source order (no env/cli)
         with tempfile.TemporaryDirectory() as temp_dir:
             config_file = Path(temp_dir) / "config.yaml"
-            config_file.write_text(yaml.dump({
-                "name": "from-file",
-                "workers": 8
-            }))
+            config_file.write_text(yaml.dump({"name": "from-file", "workers": 8}))
 
             config = OverrideHandler.parse(
                 SampleConfig,
                 config_file=str(config_file),
                 cli_args=["workers=16"],  # This should be ignored
-                source_order=["file"]
+                source_order=["file"],
             )
             assert config.name == "from-file"
             assert config.workers == 8  # Not overridden by CLI
@@ -338,10 +304,7 @@ class TestUnifiedParse:
             old_stdout = sys.stdout
             sys.stdout = StringIO()
             try:
-                OverrideHandler.parse(
-                    SampleConfig,
-                    cli_args=["--help"]
-                )
+                OverrideHandler.parse(SampleConfig, cli_args=["--help"])
             finally:
                 sys.stdout = old_stdout
 
@@ -349,17 +312,13 @@ class TestUnifiedParse:
         """Test parse in non-strict mode (strict=False)."""
         with tempfile.TemporaryDirectory() as temp_dir:
             config_file = Path(temp_dir) / "config.yaml"
-            config_file.write_text(yaml.dump({
-                "name": "test",
-                "invalid_field": "should_be_ignored"
-            }))
+            config_file.write_text(
+                yaml.dump({"name": "test", "invalid_field": "should_be_ignored"})
+            )
 
             # Should not raise error in non-strict mode (strict=False)
             config = OverrideHandler.parse(
-                SampleConfig,
-                config_file=str(config_file),
-                cli_args=[],
-                strict=False
+                SampleConfig, config_file=str(config_file), cli_args=[], strict=False
             )
             assert config.name == "test"
 
@@ -377,14 +336,8 @@ class TestUnifiedParse:
         ]
 
         for args, expected in test_cases:
-            config = OverrideHandler.parse(
-                SampleConfig,
-                cli_args=args,
-                source_order=["cli"]
-            )
+            config = OverrideHandler.parse(SampleConfig, cli_args=args, source_order=["cli"])
             assert config.debug == expected, f"Failed for {args}"
-
-
 
 
 class TestNestedFieldOverride:
@@ -392,6 +345,7 @@ class TestNestedFieldOverride:
 
     def test_nested_field_override_via_cli(self):
         """Test overriding nested fields via CLI using dot notation."""
+
         class DatabaseConfig(ConfigBase):
             host: str = "localhost"
             port: int = 5432
@@ -403,11 +357,7 @@ class TestNestedFieldOverride:
             database: DatabaseConfig
 
         # Create default config
-        default_config = AppConfig(
-            name="myapp",
-            debug=False,
-            database=DatabaseConfig()
-        )
+        default_config = AppConfig(name="myapp", debug=False, database=DatabaseConfig())
 
         # Apply nested overrides
         overrides = {
@@ -423,6 +373,7 @@ class TestNestedFieldOverride:
 
     def test_nested_field_via_parse(self):
         """Test nested field override via OverrideHandler.parse()."""
+
         class DatabaseConfig(ConfigBase):
             host: str = "localhost"
             port: int = 5432
@@ -434,12 +385,8 @@ class TestNestedFieldOverride:
         # Parse with nested CLI overrides
         config = OverrideHandler.parse(
             AppConfig,
-            cli_args=[
-                "name=production",
-                "database.host=db.example.com",
-                "database.port=3306"
-            ],
-            source_order=["cli"]
+            cli_args=["name=production", "database.host=db.example.com", "database.port=3306"],
+            source_order=["cli"],
         )
 
         assert config.name == "production"

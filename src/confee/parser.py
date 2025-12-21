@@ -1,9 +1,7 @@
-"""
-Configuration parser with Hydra-like features and inheritance support.
-"""
+"""Configuration parser with Hydra-like features and inheritance support."""
 
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 
 from .config import ConfigBase
 from .loaders import ConfigLoader
@@ -12,8 +10,7 @@ T = TypeVar("T", bound=ConfigBase)
 
 
 class ConfigParser:
-    """
-    Advanced configuration parser with Hydra-like inheritance and composition.
+    """Advanced configuration parser with Hydra-like inheritance and composition.
 
     Features:
     - Configuration inheritance through defaults lists
@@ -33,8 +30,7 @@ class ConfigParser:
         strict: bool = False,
         source_order: Optional[List[str]] = None,
     ):
-        """
-        Initialize parser with configuration directory.
+        """Initialize parser with configuration directory.
 
         Args:
             config_dir: Directory containing configuration files
@@ -74,8 +70,7 @@ class ConfigParser:
         self,
         file_name: str,
     ) -> Dict[str, Any]:
-        """
-        Load a configuration file from the config directory.
+        """Load a configuration file from the config directory.
 
         Args:
             file_name: Name of configuration file (with or without extension)
@@ -91,16 +86,13 @@ class ConfigParser:
                 # Ensure we return a dict (handle None from empty YAML)
                 return data if isinstance(data, dict) else {}
 
-        raise FileNotFoundError(
-            f"Config file not found: {file_name} in {self.config_dir}"
-        )
+        raise FileNotFoundError(f"Config file not found: {file_name} in {self.config_dir}")
 
     def resolve_defaults(
         self,
         config_dict: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """
-        Resolve default configurations from defaults list.
+        """Resolve default configurations from defaults list.
 
         Supports Hydra-style defaults list for inheritance.
 
@@ -152,8 +144,7 @@ class ConfigParser:
         config_file: str,
         config_class: Type[T],
     ) -> T:
-        """
-        Parse configuration file into config class.
+        """Parse configuration file into config class.
 
         Handles defaults resolution and inheritance.
 
@@ -178,7 +169,3 @@ class ConfigParser:
                 raise
             print(f"Warning: Configuration validation failed: {e}")
             return config_class()
-
-
-
-

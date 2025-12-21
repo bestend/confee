@@ -1,8 +1,7 @@
-"""
-Tests for confee.overrides module - CLI and environment variable overrides.
-"""
+"""Tests for confee.overrides module - CLI and environment variable overrides."""
 
 import os
+
 import pytest
 
 from confee import ConfigBase, OverrideHandler
@@ -10,6 +9,7 @@ from confee import ConfigBase, OverrideHandler
 
 class SampleConfig(ConfigBase):
     """Sample configuration for testing."""
+
     name: str
     debug: bool = False
     workers: int = 4
@@ -48,11 +48,7 @@ class TestParseOverrides:
 
     def test_parse_multiple_overrides(self):
         """Test parsing multiple override strings."""
-        overrides = OverrideHandler.parse_overrides([
-            "debug=true",
-            "workers=8",
-            "timeout=60.5"
-        ])
+        overrides = OverrideHandler.parse_overrides(["debug=true", "workers=8", "timeout=60.5"])
 
         assert overrides["debug"] == "true"
         assert overrides["workers"] == "8"
@@ -208,8 +204,7 @@ class TestFromCliAndEnv:
     def test_from_cli_and_env_cli_only(self):
         """Test creating config from CLI arguments only."""
         config = OverrideHandler.from_cli_and_env(
-            SampleConfig,
-            cli_overrides=["name=cli_app", "debug=true"]
+            SampleConfig, cli_overrides=["name=cli_app", "debug=true"]
         )
 
         assert config.name == "cli_app"
@@ -222,10 +217,7 @@ class TestFromCliAndEnv:
         os.environ["CONFEE_DEBUG"] = "true"
 
         try:
-            config = OverrideHandler.from_cli_and_env(
-                SampleConfig,
-                env_prefix="CONFEE_"
-            )
+            config = OverrideHandler.from_cli_and_env(SampleConfig, env_prefix="CONFEE_")
 
             assert config.name == "env_app"
             assert config.debug is True
@@ -240,9 +232,7 @@ class TestFromCliAndEnv:
 
         try:
             config = OverrideHandler.from_cli_and_env(
-                SampleConfig,
-                cli_overrides=["debug=true"],
-                env_prefix="CONFEE_"
+                SampleConfig, cli_overrides=["debug=true"], env_prefix="CONFEE_"
             )
 
             assert config.name == "env_app"  # From env
@@ -254,8 +244,7 @@ class TestFromCliAndEnv:
     def test_from_cli_and_env_explicit_env_dict(self):
         """Test using explicit env overrides dictionary."""
         config = OverrideHandler.from_cli_and_env(
-            SampleConfig,
-            env_overrides={"name": "explicit_app", "workers": "16"}
+            SampleConfig, env_overrides={"name": "explicit_app", "workers": "16"}
         )
 
         assert config.name == "explicit_app"
@@ -275,7 +264,7 @@ class TestOverridePriority:
             config = OverrideHandler.from_cli_and_env(
                 SampleConfig,
                 cli_overrides=["debug=true"],  # Higher priority
-                env_prefix="CONFEE_"
+                env_prefix="CONFEE_",
             )
 
             # CLI override wins
@@ -332,4 +321,3 @@ class TestOverrideMatrix:
             assert cfg.debug is True
         finally:
             sys.stdout = old_stdout
-

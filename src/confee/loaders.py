@@ -1,10 +1,8 @@
-"""
-Configuration loaders for YAML, JSON, and other formats.
-"""
+"""Configuration loaders for YAML, JSON, and other formats."""
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional, Type, TypeVar, Union
+from typing import Any, Dict, Type, TypeVar, Union
 
 import yaml  # type: ignore[import-untyped]
 
@@ -14,8 +12,7 @@ T = TypeVar("T", bound=ConfigBase)
 
 
 class ConfigLoader:
-    """
-    Flexible configuration file loader with automatic format detection.
+    """Flexible configuration file loader with automatic format detection.
 
     Supports YAML and JSON formats. Automatically detects format based on file extension.
     """
@@ -42,7 +39,7 @@ class ConfigLoader:
         if not path.exists():
             raise FileNotFoundError(f"Config file not found: {file_path}")
 
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             try:
                 data = yaml.safe_load(f)
                 # YAML can return None for empty files
@@ -57,7 +54,7 @@ class ConfigLoader:
         if not path.exists():
             raise FileNotFoundError(f"Config file not found: {file_path}")
 
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             try:
                 return json.load(f)
             except json.JSONDecodeError as e:
@@ -65,8 +62,7 @@ class ConfigLoader:
 
     @staticmethod
     def load(file_path: Union[str, Path], strict: bool = True) -> Dict[str, Any]:
-        """
-        Load configuration file with automatic format detection.
+        """Load configuration file with automatic format detection.
 
         Args:
             file_path: Path to configuration file
@@ -102,8 +98,7 @@ class ConfigLoader:
         base_dir: Path,
         file_prefix: str = "@file:",
     ) -> Dict[str, Any]:
-        """
-        Resolve file references in configuration values.
+        """Resolve file references in configuration values.
 
         File references use multiple formats:
         - "@file:path/to/file" - 파일 내용을 문자열로 로드
@@ -142,23 +137,21 @@ class ConfigLoader:
 
                 if value.startswith("@file:"):
                     prefix_match = "@file:"
-                    file_path_value = value[len("@file:"):]
+                    file_path_value = value[len("@file:") :]
                 elif value.startswith("@config:"):
                     prefix_match = "@config:"
-                    file_path_value = value[len("@config:"):]
+                    file_path_value = value[len("@config:") :]
 
                 if prefix_match and file_path_value:
                     file_full_path = base_dir / file_path_value
 
                     try:
                         if not file_full_path.exists():
-                            raise FileNotFoundError(
-                                f"Referenced file not found: {file_full_path}"
-                            )
+                            raise FileNotFoundError(f"Referenced file not found: {file_full_path}")
 
                         if prefix_match == "@file:":
                             # 텍스트 파일 로드
-                            with open(file_full_path, "r", encoding="utf-8") as f:
+                            with open(file_full_path, encoding="utf-8") as f:
                                 resolved[key] = f.read().strip()
 
                         elif prefix_match == "@config:":
@@ -166,9 +159,7 @@ class ConfigLoader:
                             yaml_data = ConfigLoader.load_yaml(file_full_path)
                             # 재귀적으로 참조 해석
                             resolved[key] = ConfigLoader.resolve_file_references(
-                                yaml_data,
-                                file_full_path.parent,
-                                file_prefix
+                                yaml_data, file_full_path.parent, file_prefix
                             )
 
                     except Exception as e:
@@ -179,14 +170,11 @@ class ConfigLoader:
 
             elif isinstance(value, dict):
                 # Recursively resolve nested dictionaries
-                resolved[key] = ConfigLoader.resolve_file_references(
-                    value, base_dir, file_prefix
-                )
+                resolved[key] = ConfigLoader.resolve_file_references(value, base_dir, file_prefix)
             else:
                 resolved[key] = value
 
         return resolved
-
 
 
 def load_from_file(
@@ -194,8 +182,7 @@ def load_from_file(
     config_class: Type[T],
     strict: bool = True,
 ) -> T:
-    """
-    Load configuration from file into specified config class.
+    """Load configuration from file into specified config class.
 
     Args:
         file_path: Path to configuration file (YAML or JSON)
@@ -236,8 +223,7 @@ def load_config(
     config_class: Type[T],
     strict: bool = True,
 ) -> T:
-    """
-    Load and merge multiple configuration files.
+    """Load and merge multiple configuration files.
 
     Later files override earlier files. All files must be compatible with config_class.
 
@@ -269,4 +255,3 @@ def load_config(
             raise
         print(f"Warning: Failed to validate merged config: {e}")
         return config_class()
-

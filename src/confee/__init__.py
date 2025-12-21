@@ -1,5 +1,4 @@
-"""
-confee - Configuration Enhanced & Easy ☕️
+"""confee - Configuration Enhanced & Easy ☕️
 
 A Hydra-like configuration parser helper package with Pydantic support.
 """
@@ -10,8 +9,8 @@ __license__ = "MIT"
 
 from .config import ConfigBase
 from .loaders import ConfigLoader, load_config, load_from_file
+from .overrides import HelpFormatter, OverrideHandler, is_help_command
 from .parser import ConfigParser
-from .overrides import OverrideHandler, HelpFormatter, is_help_command
 
 __all__ = [
     "ConfigBase",
@@ -23,4 +22,3 @@ __all__ = [
     "HelpFormatter",
     "is_help_command",
 ]
-

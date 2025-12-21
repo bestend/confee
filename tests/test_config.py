@@ -1,8 +1,7 @@
-"""
-Tests for confee.config module - Configuration base classes and features.
-"""
+"""Tests for confee.config module - Configuration base classes and features."""
 
 import json
+
 import pytest
 from pydantic import ValidationError
 
@@ -11,6 +10,7 @@ from confee import ConfigBase
 
 class SampleConfig(ConfigBase):
     """Sample configuration for testing."""
+
     name: str
     debug: bool = False
     workers: int = 4
@@ -113,6 +113,7 @@ class TestStrictMode:
 
     def test_strict_mode_forbids_extra_fields(self):
         """Test that strict mode forbids extra fields."""
+
         class StrictConfig(ConfigBase):
             model_config = {"extra": "forbid"}
             name: str
@@ -126,6 +127,7 @@ class TestConfigInheritance:
 
     def test_override_with_basic(self):
         """Test basic override_with."""
+
         class AppConfig(ConfigBase):
             name: str
             debug: bool = False
@@ -143,6 +145,7 @@ class TestConfigInheritance:
 
     def test_override_with_partial(self):
         """Test that unset values use defaults."""
+
         class AppConfig(ConfigBase):
             name: str
             debug: bool = False
@@ -172,4 +175,3 @@ class TestConfigModelSchema:
         assert "name" in schema["properties"]
         assert "debug" in schema["properties"]
         assert "workers" in schema["properties"]
-

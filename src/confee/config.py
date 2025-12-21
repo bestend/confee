@@ -1,17 +1,15 @@
-"""
-Configuration base classes with Pydantic validation and inheritance support.
-"""
+"""Configuration base classes with Pydantic validation and inheritance support."""
 
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+
 from pydantic import BaseModel, ConfigDict
 
 T = TypeVar("T", bound="ConfigBase")
 
 
 class ConfigBase(BaseModel):
-    """
-    Base configuration class using Pydantic for type validation.
+    """Base configuration class using Pydantic for type validation.
 
     Supports:
     - Type checking and validation
@@ -35,8 +33,6 @@ class ConfigBase(BaseModel):
         validate_default=True,
         str_strip_whitespace=True,
     )
-
-
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary."""
@@ -66,8 +62,7 @@ class ConfigBase(BaseModel):
         help_flags: Optional[List[str]] = None,
         strict: bool = True,
     ) -> T:
-        """
-        Load configuration from multiple sources (file, environment, CLI).
+        """Load configuration from multiple sources (file, environment, CLI).
 
         Unified parsing method — processes file, environment variables, and CLI at once.
         This consolidates the capabilities of OverrideHandler.parse() and load_from_file().
@@ -113,23 +108,22 @@ class ConfigBase(BaseModel):
                 help_flags=help_flags,
                 strict=strict,
             )
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             import sys
             from pathlib import Path
 
             if config_file is not None:
                 abs_path = Path(config_file).resolve()
-                print(f"Error: Config file not found", file=sys.stderr)
+                print("Error: Config file not found", file=sys.stderr)
                 print(f"  File: {config_file}", file=sys.stderr)
                 print(f"  Full path: {abs_path}", file=sys.stderr)
             else:
-                print(f"Error: Config file not found", file=sys.stderr)
+                print("Error: Config file not found", file=sys.stderr)
             print(f"  Current directory: {Path.cwd()}", file=sys.stderr)
             raise SystemExit(1)
 
     def override_with(self: T, defaults: "ConfigBase") -> T:
-        """
-        Override this configuration's values with defaults from another configuration.
+        """Override this configuration's values with defaults from another configuration.
         This configuration's values take precedence over the defaults.
 
         Args:
@@ -161,8 +155,7 @@ class ConfigBase(BaseModel):
 
     @classmethod
     def set_strict_mode(cls, strict: bool = True) -> None:
-        """
-        Enable/disable strict mode.
+        """Enable/disable strict mode.
         - True: forbid extra fields (forbid unknown fields)
         - False: ignore extra fields (strict=False)
         """
@@ -170,6 +163,3 @@ class ConfigBase(BaseModel):
             cls.model_config = ConfigDict(**{**cls.model_config, "extra": "forbid"})
         else:
             cls.model_config = ConfigDict(**{**cls.model_config, "extra": "ignore"})
-
-
-

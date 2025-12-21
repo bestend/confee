@@ -1,6 +1,4 @@
-"""
-Command-line argument and environment variable override handling.
-"""
+"""Command-line argument and environment variable override handling."""
 
 import os
 import sys
@@ -54,8 +52,7 @@ class ErrorFormatter:
 
     @staticmethod
     def format_validation_error(error: Exception, style: str = "compact") -> str:
-        """
-        Format Pydantic validation errors in a readable way.
+        """Format Pydantic validation errors in a readable way.
 
         Args:
             error: Pydantic ValidationError
@@ -70,6 +67,7 @@ class ErrorFormatter:
             if style == "compact":
                 # Try extract missing field for concise output
                 import re
+
                 field = None
                 if "field required" in error_str.lower():
                     m = re.search(r"(\w+)\s*\n\s*Field required", error_str)
@@ -88,21 +86,24 @@ class ErrorFormatter:
             if "field required" in error_str.lower():
                 # Extract field name from error message
                 import re
+
                 match = re.search(r"(\w+)\s*\n\s*Field required", error_str)
                 if match:
                     field_name = match.group(1)
-                    lines.append(f"  {Color.BRIGHT_YELLOW}Missing required field: {Color.BOLD}{field_name}{Color.RESET}")
-                    lines.append(f"  This field is required for configuration.")
+                    lines.append(
+                        f"  {Color.BRIGHT_YELLOW}Missing required field: {Color.BOLD}{field_name}{Color.RESET}"
+                    )
+                    lines.append("  This field is required for configuration.")
                 else:
-                    lines.append(f"  A required field is missing.")
+                    lines.append("  A required field is missing.")
             else:
                 lines.append(f"  {error_str}")
 
             lines.append("")
             lines.append(f"  {Color.CYAN}💡 How to fix:{Color.RESET}")
-            lines.append(f"    1. Add the required field to your configuration file")
-            lines.append(f"    2. Or pass the value via CLI: python main.py name=myapp")
-            lines.append(f"    3. Or set an environment variable: export CONFEE_NAME=myapp")
+            lines.append("    1. Add the required field to your configuration file")
+            lines.append("    2. Or pass the value via CLI: python main.py name=myapp")
+            lines.append("    3. Or set an environment variable: export CONFEE_NAME=myapp")
 
             return "\n".join(lines)
 
@@ -166,8 +167,7 @@ class HelpFormatter:
         program_name: Optional[str] = None,
         description: Optional[str] = None,
     ) -> str:
-        """
-        Generate help text for a configuration class with colors.
+        """Generate help text for a configuration class with colors.
 
         Args:
             config_class: Configuration class to generate help for
@@ -184,7 +184,9 @@ class HelpFormatter:
         if program_name is None:
             program_name = sys.argv[0]
 
-        help_text = f"{Color.BOLD}{Color.BRIGHT_CYAN}Usage:{Color.RESET} {program_name} [OPTIONS]\n\n"
+        help_text = (
+            f"{Color.BOLD}{Color.BRIGHT_CYAN}Usage:{Color.RESET} {program_name} [OPTIONS]\n\n"
+        )
 
         if description:
             help_text += f"{Color.BOLD}Description:{Color.RESET}\n  {description}\n\n"
@@ -240,8 +242,7 @@ class HelpFormatter:
         description: Optional[str] = None,
         exit_code: int = 0,
     ) -> None:
-        """
-        Print help message and optionally exit.
+        """Print help message and optionally exit.
 
         Args:
             config_class: Configuration class to generate help for
@@ -249,9 +250,7 @@ class HelpFormatter:
             description: Custom description text
             exit_code: Exit code (None to not exit)
         """
-        help_text = HelpFormatter.generate_help(
-            config_class, program_name, description
-        )
+        help_text = HelpFormatter.generate_help(config_class, program_name, description)
         print(help_text)
         if exit_code is not None:
             sys.exit(exit_code)
@@ -261,8 +260,7 @@ def is_help_command(
     arg: str,
     help_flags: Optional[List[str]] = None,
 ) -> bool:
-    """
-    Check if an argument is a help command.
+    """Check if an argument is a help command.
 
     Args:
         arg: Argument to check
@@ -278,8 +276,7 @@ def is_help_command(
 
 
 class OverrideHandler:
-    """
-    Handle configuration overrides from command-line arguments and environment variables.
+    """Handle configuration overrides from command-line arguments and environment variables.
 
     Supports:
     - Command-line overrides: key=value format
@@ -290,8 +287,7 @@ class OverrideHandler:
 
     @staticmethod
     def parse_override_string(override_str: str) -> Tuple[str, str]:
-        """
-        Parse override string in key=value format.
+        """Parse override string in key=value format.
 
         Args:
             override_str: String like "key=value" or "nested.key=value"
@@ -304,8 +300,7 @@ class OverrideHandler:
         """
         if "=" not in override_str:
             raise ValueError(
-                f"Invalid override format: '{override_str}'. "
-                "Expected format: key=value"
+                f"Invalid override format: '{override_str}'. Expected format: key=value"
             )
 
         key, value = override_str.split("=", 1)
@@ -315,8 +310,7 @@ class OverrideHandler:
     def parse_overrides(
         override_strings: List[str],
     ) -> Dict[str, Any]:
-        """
-        Parse multiple override strings into a dictionary.
+        """Parse multiple override strings into a dictionary.
 
         Args:
             override_strings: List of "key=value" strings
@@ -345,8 +339,7 @@ class OverrideHandler:
         prefix: str = "CONFEE_",
         strict: bool = False,
     ) -> Dict[str, str]:
-        """
-        Get configuration overrides from environment variables.
+        """Get configuration overrides from environment variables.
 
         Args:
             prefix: Environment variable prefix (default: CONFEE_)
@@ -372,8 +365,7 @@ class OverrideHandler:
 
     @staticmethod
     def coerce_value(value: str, target_type: Type[Any]) -> Any:
-        """
-        Coerce string value to target type.
+        """Coerce string value to target type.
 
         Supports special handling for boolean values:
         - True: "true", "yes", "1", "on" (case-insensitive)
@@ -404,8 +396,7 @@ class OverrideHandler:
                 return False
             else:
                 raise ValueError(
-                    f"Cannot coerce '{value}' to bool. "
-                    "Use: true/yes/on/1 or false/no/off/0"
+                    f"Cannot coerce '{value}' to bool. Use: true/yes/on/1 or false/no/off/0"
                 )
         elif target_type == int:
             return int(value)
@@ -423,8 +414,7 @@ class OverrideHandler:
         overrides: Dict[str, Any],
         strict: bool = False,
     ) -> T:
-        """
-        Apply overrides to configuration instance.
+        """Apply overrides to configuration instance.
 
         Supports nested field access using dot notation (e.g., "database.host").
 
@@ -504,8 +494,7 @@ class OverrideHandler:
         env_prefix: str = "CONFEE_",
         env_overrides: Optional[Dict[str, str]] = None,
     ) -> T:
-        """
-        Create configuration from CLI arguments and environment variables.
+        """Create configuration from CLI arguments and environment variables.
 
         Priority order (highest to lowest):
         1. CLI arguments
@@ -549,8 +538,7 @@ class OverrideHandler:
 
     @staticmethod
     def _flatten_to_nested(flat_dict: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Convert flat dictionary with dotted keys to nested dictionary.
+        """Convert flat dictionary with dotted keys to nested dictionary.
 
         Examples:
             >>> flat = {"a.b.c": "value", "a.b.d": "value2", "x": "y"}
@@ -588,8 +576,7 @@ class OverrideHandler:
         help_flags: Optional[List[str]] = None,
         strict: bool = True,
     ) -> T:
-        """
-        Parse configuration from multiple sources (file, environment, CLI).
+        """Parse configuration from multiple sources (file, environment, CLI).
 
         This is the primary entry point for configuration parsing.
         Combines configuration file, environment variables, and CLI arguments.
@@ -700,9 +687,7 @@ class OverrideHandler:
             try:
                 from .loaders import ConfigLoader
 
-                configs_by_source["file"] = ConfigLoader.load(
-                    config_file, strict=strict
-                )
+                configs_by_source["file"] = ConfigLoader.load(config_file, strict=strict)
             except FileNotFoundError:
                 if strict:
                     # Re-raise in strict mode
@@ -720,9 +705,7 @@ class OverrideHandler:
 
         # Load from environment variables if in source order
         if "env" in source_order:
-            configs_by_source["env"] = OverrideHandler.get_env_overrides(
-                prefix=env_prefix
-            )
+            configs_by_source["env"] = OverrideHandler.get_env_overrides(prefix=env_prefix)
 
         # Parse CLI arguments if in source order
         if "cli" in source_order:
@@ -757,4 +740,3 @@ class OverrideHandler:
                 return config_class()
             except Exception:
                 raise SystemExit(1)
-

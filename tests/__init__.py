@@ -1,4 +1,1 @@
-"""
-Tests for confee package.
-"""
-
+"""Tests for confee package."""

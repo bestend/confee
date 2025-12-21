@@ -11,6 +11,7 @@ Hydra 스타일의 Configuration 관리 + Pydantic 타입 안전성 + Typer 스�
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Status](https://img.shields.io/badge/status-alpha-yellow)](https://github.com/bestend/confee)
+[![Tests](https://github.com/bestend/confee/actions/workflows/tests.yml/badge.svg)](https://github.com/bestend/confee/actions/workflows/tests.yml)
 
 </div>
 

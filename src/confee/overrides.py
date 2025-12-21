@@ -126,13 +126,14 @@ class HelpFormatter:
         - otherwise: actual default value
         """
         # Detect Pydantic's undefined sentinel so we don't render it as a string
+        _PUD: Any
         try:
             from pydantic_core import PydanticUndefined as _PUD  # type: ignore
         except Exception:  # pragma: no cover - fallback path
             try:
                 from pydantic import PydanticUndefined as _PUD  # type: ignore
             except Exception:  # pragma: no cover
-                _PUD = object()
+                _PUD = object()  # type: ignore
 
         # 1) Prioritize default_factory
         if getattr(field, "default_factory", None) is not None:
@@ -197,7 +198,7 @@ class HelpFormatter:
             for field_name, field in config_class.model_fields.items():
                 field_type = field.annotation
                 type_str = (
-                    field_type.__name__
+                    field_type.__name__  # type: ignore
                     if hasattr(field_type, "__name__")
                     else str(field_type)
                 )

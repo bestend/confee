@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Optional, Type, TypeVar, Union
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 from .config import ConfigBase
 

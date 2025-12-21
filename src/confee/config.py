@@ -36,10 +36,7 @@ class ConfigBase(BaseModel):
         str_strip_whitespace=True,
     )
 
-    @classmethod
-    def model_json_schema(cls, **kwargs: Any) -> Dict[str, Any]:
-        """Get JSON schema for the configuration."""
-        return super().model_json_schema(**kwargs)
+
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary."""
@@ -101,10 +98,15 @@ class ConfigBase(BaseModel):
         """
         from .overrides import OverrideHandler
 
+        # Convert Path to str for type compatibility
+        config_file_str: Optional[str] = None
+        if config_file is not None:
+            config_file_str = str(config_file)
+
         try:
             return OverrideHandler.parse(
                 cls,
-                config_file=config_file,
+                config_file=config_file_str,
                 cli_args=cli_args,
                 env_prefix=env_prefix,
                 source_order=source_order,

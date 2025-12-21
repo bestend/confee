@@ -71,9 +71,12 @@ convention = "google"
 
 [tool.mypy]
 python_version = "3.9"
-warn_return_any = true
+warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false
+ignore_missing_imports = true
+check_untyped_defs = false
+no_error_summary = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,6 +1,6 @@
 # confee vs OmegaConf Comparison
 
-**Language:** [한국어](./comparison.ko.md) | English
+**Language:** [한국어](./COMPARISON.ko.md) | English
 
 ## 🔍 Detailed Analysis
 

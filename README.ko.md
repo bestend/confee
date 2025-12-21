@@ -4,7 +4,7 @@
 
 <div align="center">
 
-**언어:** 한국어 | [English](./readme.md)
+**언어:** 한국어 | [English](./README.md)
 
 Hydra 스타일의 Configuration 관리 + Pydantic 타입 안전성 + Typer 스타일 자동 Help 생성
 

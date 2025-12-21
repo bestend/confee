@@ -1,6 +1,6 @@
 # confee - Development Guide
 
-**Language:** [한국어](./development.ko.md) | English
+**Language:** [한국어](./DEVELOPMENT.ko.md) | English
 
 ## Project Structure
 

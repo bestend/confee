@@ -4,7 +4,7 @@
 
 <div align="center">
 
-**Language:** [한국어](./readme.ko.md) | English
+**Language:** [한국어](./README.ko.md) | English
 
 Hydra-style Configuration Management + Pydantic Type Safety + Typer-style Auto Help Generation
 

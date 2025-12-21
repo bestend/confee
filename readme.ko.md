@@ -236,7 +236,11 @@ class AppConfig(ConfigBase):
     title: str = "My API"
     debug: bool = False
 
-config = AppConfig.load()
+# 파일과 환경 변수에서만 로드 (CLI 제외)
+config = AppConfig.load(
+    config_file="config.yaml",
+    source_order=["env", "file"]
+)
 app = FastAPI(title=config.title, debug=config.debug)
 ```
 
@@ -249,7 +253,11 @@ from confee import ConfigBase
 class AppConfig(ConfigBase):
     name: str
 
-config = AppConfig.load()
+# 파일과 환경 변수에서만 로드 (CLI 제외)
+config = AppConfig.load(
+    config_file="config.yaml",
+    source_order=["env", "file"]
+)
 
 @click.command()
 def main():

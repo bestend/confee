@@ -236,7 +236,11 @@ class AppConfig(ConfigBase):
     title: str = "My API"
     debug: bool = False
 
-config = AppConfig.load()
+# Load config from file and environment only (no CLI)
+config = AppConfig.load(
+    config_file="config.yaml",
+    source_order=["env", "file"]
+)
 app = FastAPI(title=config.title, debug=config.debug)
 ```
 
@@ -249,7 +253,11 @@ from confee import ConfigBase
 class AppConfig(ConfigBase):
     name: str
 
-config = AppConfig.load()
+# Load config from file and environment only (no CLI)
+config = AppConfig.load(
+    config_file="config.yaml",
+    source_order=["env", "file"]
+)
 
 @click.command()
 def main():

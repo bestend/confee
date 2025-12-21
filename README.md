@@ -45,20 +45,6 @@ Hydra-style Configuration Management + Pydantic Type Safety + Typer-style Auto H
 pip install confee
 ```
 
-Or with uv:
-
-```bash
-uv pip install confee
-```
-
-Or from source (development):
-
-```bash
-git clone https://github.com/bestend/confee.git
-cd confee
-pip install -e .
-```
-
 ---
 
 ## 🚀 Quick Start

@@ -45,20 +45,6 @@ Hydra 스타일의 Configuration 관리 + Pydantic 타입 안전성 + Typer 스�
 pip install confee
 ```
 
-또는 uv 사용:
-
-```bash
-uv pip install confee
-```
-
-또는 소스에서 설치 (개발):
-
-```bash
-git clone https://github.com/bestend/confee.git
-cd confee
-pip install -e .
-```
-
 ---
 
 ## 🚀 빠른 시작

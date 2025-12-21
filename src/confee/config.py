@@ -117,10 +117,13 @@ class ConfigBase(BaseModel):
             import sys
             from pathlib import Path
 
-            abs_path = Path(config_file).resolve()
-            print(f"Error: Config file not found", file=sys.stderr)
-            print(f"  File: {config_file}", file=sys.stderr)
-            print(f"  Full path: {abs_path}", file=sys.stderr)
+            if config_file is not None:
+                abs_path = Path(config_file).resolve()
+                print(f"Error: Config file not found", file=sys.stderr)
+                print(f"  File: {config_file}", file=sys.stderr)
+                print(f"  Full path: {abs_path}", file=sys.stderr)
+            else:
+                print(f"Error: Config file not found", file=sys.stderr)
             print(f"  Current directory: {Path.cwd()}", file=sys.stderr)
             raise SystemExit(1)
 

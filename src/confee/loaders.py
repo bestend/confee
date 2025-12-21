@@ -132,7 +132,7 @@ class ConfigLoader:
             >>> resolved = ConfigLoader.resolve_file_references(data, Path("."))
             >>> resolved["db"]  # {'host': 'localhost', 'port': 5432, ...}
         """
-        resolved = {}
+        resolved: Dict[str, Any] = {}
 
         for key, value in data.items():
             if isinstance(value, str) and ("@" in value and ":" in value):

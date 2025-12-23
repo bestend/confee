@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2025-12-23
+
+### Added
+- Better error messages with detailed validation feedback
+- Support for more flexible CLI argument parsing
+- Enhanced configuration merging capabilities
+
+### Changed
+- Improved type checking and validation error reporting
+- Better handling of optional configuration fields
+- More robust file loading and error handling
+
+### Fixed
+- Fixed type hints for configuration file paths
+- Improved YAML/JSON parsing consistency
+
+---
+
 ## [0.1.4] - 2025-12-21
 
 ### Improved

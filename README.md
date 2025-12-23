@@ -97,6 +97,44 @@ python app.py
 python app.py --help
 ```
 
+### Detailed Validation Error Messages
+
+By default, validation errors are displayed concisely, but using the `--verbose` flag shows detailed error information for each field:
+
+```bash
+# Concise error message (default)
+python app.py name=123
+
+# Output:
+# Config error: field 'name' - Input should be a valid string
+
+# Display detailed error messages in verbose mode
+python app.py name=123 --verbose
+
+# Output:
+# ❌ Configuration Validation Error
+#
+#   Found 1 validation error(s):
+#
+#   [1] Field: name
+#       Error: Input should be a valid string
+#       Type: string_type
+#       Got: 123
+#
+#   💡 How to fix:
+#     1. Add the required field to your configuration file
+#     2. Or pass the value via CLI: python main.py name=myapp
+#     3. Or set an environment variable: export CONFEE_NAME=myapp
+#     4. Check field types match your configuration class
+```
+
+Or set via environment variable:
+
+```bash
+export CONFEE_VERBOSITY=verbose
+python app.py name=123
+```
+
 ---
 
 ## 🎯 Advanced Features

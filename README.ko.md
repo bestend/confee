@@ -97,6 +97,44 @@ python app.py
 python app.py --help
 ```
 
+### 상세한 검증 에러 메시지
+
+기본적으로 검증 에러는 간결하게 표시되지만, `--verbose` 플래그를 사용하면 각 필드별로 상세한 에러 정보를 볼 수 있습니다:
+
+```bash
+# 간결한 에러 메시지 (기본값)
+python app.py name=123
+
+# 결과:
+# Config error: field 'name' - Input should be a valid string
+
+# Verbose 모드로 상세한 에러 메시지 표시
+python app.py name=123 --verbose
+
+# 결과:
+# ❌ Configuration Validation Error
+#
+#   Found 1 validation error(s):
+#
+#   [1] Field: name
+#       Error: Input should be a valid string
+#       Type: string_type
+#       Got: 123
+#
+#   💡 How to fix:
+#     1. Add the required field to your configuration file
+#     2. Or pass the value via CLI: python main.py name=myapp
+#     3. Or set an environment variable: export CONFEE_NAME=myapp
+#     4. Check field types match your configuration class
+```
+
+또는 환경 변수로 설정할 수 있습니다:
+
+```bash
+export CONFEE_VERBOSITY=verbose
+python app.py name=123
+```
+
 ---
 
 ## 🎯 고급 기능

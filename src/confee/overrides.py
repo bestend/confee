@@ -60,9 +60,65 @@ class ErrorFormatter:
         Returns:
             Formatted error message
         """
+        from pydantic import ValidationError
+
         error_str = str(error)
 
         # Check if it's a Pydantic ValidationError
+        if isinstance(error, ValidationError):
+            # Extract detailed error information from Pydantic V2 ValidationError
+            errors = error.errors()
+
+            if style == "compact":
+                # Compact format: show first error only
+                if errors:
+                    first_error = errors[0]
+                    field = first_error.get("loc", ("unknown",))[0]
+                    error_type = first_error.get("type", "unknown_error")
+                    msg = first_error.get("msg", "validation failed")
+
+                    if error_type == "missing":
+                        return f"Config error: missing required field '{field}'"
+                    else:
+                        return f"Config error: field '{field}' - {msg}"
+                return "Config error: validation failed"
+
+            # Verbose format with detailed error information
+            lines = []
+            lines.append(f"{Color.BOLD}{Color.RED}❌ Configuration Validation Error{Color.RESET}")
+            lines.append("")
+
+            if errors:
+                lines.append(f"  {Color.BRIGHT_YELLOW}Found {len(errors)} validation error(s):{Color.RESET}")
+                lines.append("")
+
+                for idx, error_detail in enumerate(errors, 1):
+                    field = error_detail.get("loc", ("unknown",))[0]
+                    error_type = error_detail.get("type", "unknown_error")
+                    msg = error_detail.get("msg", "validation failed")
+                    input_value = error_detail.get("input", None)
+
+                    lines.append(f"  {Color.BRIGHT_MAGENTA}[{idx}] Field: {Color.BOLD}{field}{Color.RESET}")
+                    lines.append(f"      {Color.YELLOW}Error: {msg}{Color.RESET}")
+                    lines.append(f"      {Color.DIM}Type: {error_type}{Color.RESET}")
+
+                    if input_value is not None:
+                        lines.append(f"      {Color.DIM}Got: {repr(input_value)}{Color.RESET}")
+
+                    lines.append("")
+            else:
+                lines.append(f"  {error_str}")
+                lines.append("")
+
+            lines.append(f"  {Color.CYAN}💡 How to fix:{Color.RESET}")
+            lines.append("    1. Add the required field to your configuration file")
+            lines.append("    2. Or pass the value via CLI: python main.py name=myapp")
+            lines.append("    3. Or set an environment variable: export CONFEE_NAME=myapp")
+            lines.append("    4. Check field types match your configuration class")
+
+            return "\n".join(lines)
+
+        # Check if it's a validation error by string pattern
         if "validation error" in error_str.lower():
             if style == "compact":
                 # Try extract missing field for concise output

@@ -52,6 +52,12 @@ class ConfigBase(BaseModel):
         """Create configuration from JSON string."""
         return cls.model_validate_json(json_str)
 
+    def print(self) -> None:
+        """Print the configuration instance using devtools.debug."""
+        from devtools import debug
+
+        debug(self, color=True)
+
     @classmethod
     def load(
         cls: Type[T],
@@ -99,7 +105,7 @@ class ConfigBase(BaseModel):
             config_file_str = str(config_file)
 
         try:
-            return OverrideHandler.parse(
+            config = OverrideHandler.parse(
                 cls,
                 config_file=config_file_str,
                 cli_args=cli_args,
@@ -108,6 +114,8 @@ class ConfigBase(BaseModel):
                 help_flags=help_flags,
                 strict=strict,
             )
+            config.print()
+            return config
         except FileNotFoundError:
             import sys
             from pathlib import Path

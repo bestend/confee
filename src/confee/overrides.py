@@ -173,6 +173,86 @@ class HelpFormatter:
     """Format and display help messages for configuration classes."""
 
     @staticmethod
+    def _is_config_base_subclass(field_type: Any) -> bool:
+        """Check if a field type is a ConfigBase subclass.
+
+        Handles Optional, Union, and other typing constructs.
+
+        Args:
+            field_type: The field annotation type
+
+        Returns:
+            True if the type is or contains a ConfigBase subclass
+        """
+        import inspect
+        from typing import get_args, get_origin
+
+        # Handle None type
+        if field_type is type(None):
+            return False
+
+        # Direct class check
+        if inspect.isclass(field_type):
+            try:
+                return issubclass(field_type, ConfigBase)
+            except TypeError:
+                return False
+
+        # Handle Optional, Union, etc.
+        origin = get_origin(field_type)
+        if origin is not None:
+            # For Union types (including Optional), check all args
+            args = get_args(field_type)
+            for arg in args:
+                if arg is type(None):
+                    continue
+                if inspect.isclass(arg):
+                    try:
+                        if issubclass(arg, ConfigBase):
+                            return True
+                    except TypeError:
+                        continue
+
+        return False
+
+    @staticmethod
+    def _get_config_base_type(field_type: Any) -> Optional[Type[ConfigBase]]:
+        """Extract the ConfigBase type from a field annotation.
+
+        Args:
+            field_type: The field annotation type
+
+        Returns:
+            The ConfigBase subclass if found, None otherwise
+        """
+        import inspect
+        from typing import get_args, get_origin
+
+        # Direct class check
+        if inspect.isclass(field_type):
+            try:
+                if issubclass(field_type, ConfigBase):
+                    return field_type
+            except TypeError:
+                pass
+
+        # Handle Optional, Union, etc.
+        origin = get_origin(field_type)
+        if origin is not None:
+            args = get_args(field_type)
+            for arg in args:
+                if arg is type(None):
+                    continue
+                if inspect.isclass(arg):
+                    try:
+                        if issubclass(arg, ConfigBase):
+                            return arg
+                    except TypeError:
+                        continue
+
+        return None
+
+    @staticmethod
     def _format_default_field(field: Any) -> str:
         """Return a colored default-string segment for a Pydantic v2 field.
 
@@ -218,6 +298,82 @@ class HelpFormatter:
         return f" {Color.BRIGHT_YELLOW}[default: {field.default}]{Color.RESET}"
 
     @staticmethod
+    def _collect_fields_recursive(
+        config_class: Type[ConfigBase],
+        prefix: str = "",
+        max_depth: int = 5,
+        visited: Optional[set] = None,
+    ) -> List[Tuple[str, str, str, str]]:
+        """Recursively collect all fields including nested ConfigBase fields.
+
+        Args:
+            config_class: Configuration class to extract fields from
+            prefix: Prefix for nested field names (e.g., "workers.")
+            max_depth: Maximum recursion depth to prevent infinite loops
+            visited: Set of visited classes to prevent circular references
+
+        Returns:
+            List of tuples: (field_name, type_str, description, default_str)
+        """
+        if visited is None:
+            visited = set()
+
+        # Prevent infinite recursion
+        if max_depth <= 0:
+            return []
+
+        # Prevent circular references
+        if config_class in visited:
+            return []
+
+        visited = visited.copy()
+        visited.add(config_class)
+
+        field_info = []
+
+        if not hasattr(config_class, "model_fields"):
+            return field_info
+
+        # Pydantic V2
+        for field_name, field in config_class.model_fields.items():
+            field_type = field.annotation
+            full_name = f"{prefix}{field_name}" if prefix else field_name
+
+            # Check if this field is a ConfigBase subclass
+            nested_config_class = HelpFormatter._get_config_base_type(field_type)
+
+            if nested_config_class is not None:
+                # This is a nested config - recurse into it
+                nested_fields = HelpFormatter._collect_fields_recursive(
+                    nested_config_class,
+                    prefix=f"{full_name}.",
+                    max_depth=max_depth - 1,
+                    visited=visited,
+                )
+                field_info.extend(nested_fields)
+            else:
+                # Regular field - add it
+                type_str = (
+                    field_type.__name__  # type: ignore
+                    if hasattr(field_type, "__name__")
+                    else str(field_type)
+                )
+
+                # Get description from field info
+                description_text = field.description or field_name.replace("_", " ")
+                if prefix:
+                    # Add prefix context to description
+                    prefix_clean = prefix.rstrip(".")
+                    description_text = f"{prefix_clean} {description_text}"
+
+                # Get default value (robust formatting)
+                default_str = HelpFormatter._format_default_field(field)
+
+                field_info.append((full_name, type_str, description_text, default_str))
+
+        return field_info
+
+    @staticmethod
     def generate_help(
         config_class: Type[ConfigBase],
         program_name: Optional[str] = None,
@@ -249,25 +405,8 @@ class HelpFormatter:
 
         help_text += f"{Color.BOLD}{Color.BRIGHT_CYAN}Options:{Color.RESET}\n"
 
-        # Extract fields from config class
-        field_info = []
-        if hasattr(config_class, "model_fields"):
-            # Pydantic V2
-            for field_name, field in config_class.model_fields.items():
-                field_type = field.annotation
-                type_str = (
-                    field_type.__name__  # type: ignore
-                    if hasattr(field_type, "__name__")
-                    else str(field_type)
-                )
-
-                # Get description from field info
-                description_text = field.description or field_name.replace("_", " ")
-
-                # Get default value (robust formatting)
-                default_str = HelpFormatter._format_default_field(field)
-
-                field_info.append((field_name, type_str, description_text, default_str))
+        # Extract fields recursively (including nested ConfigBase fields)
+        field_info = HelpFormatter._collect_fields_recursive(config_class)
 
         # Format field information
         if field_info:

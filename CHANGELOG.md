@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.2] - 2026-01-02
+
+### Improved
+- Help display now groups nested config fields by section with `[section] Options:` headers
+- Improved readability for hierarchical configuration structures in `--help` output
+
+---
+
 ## [0.2.0] - 2025-12-23
 
 ### Added

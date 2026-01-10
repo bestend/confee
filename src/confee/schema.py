@@ -128,14 +128,14 @@ class SchemaGenerator:
     @staticmethod
     def generate_example_config(
         config_class: Type[ConfigBase],
-        format: str = "yaml",
+        output_format: str = "yaml",
         include_comments: bool = True,
     ) -> str:
         """Generate an example configuration file from schema.
 
         Args:
             config_class: Configuration class
-            format: Output format ("yaml" or "json")
+            output_format: Output format ("yaml" or "json")
             include_comments: Whether to include field descriptions as comments
 
         Returns:
@@ -151,7 +151,7 @@ class SchemaGenerator:
         properties = schema.get("properties", {})
         required = set(schema.get("required", []))
 
-        if format == "json":
+        if output_format == "json":
             example = {}
             for name, prop in properties.items():
                 example[name] = prop.get("default", _get_example_value(prop))

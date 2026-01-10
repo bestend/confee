@@ -269,8 +269,12 @@ class ConfigWatcher:
                             old_config = self._last_config
                             self._last_config = new_config
                             await self.callback(old_config or {}, new_config)
-                    except Exception:
-                        pass  # Ignore errors during reload
+                    except Exception as e:
+                        # Log or handle reload errors; config watch continues with previous config.
+                        # Errors during reload are non-fatal to keep the watcher running.
+                        import logging
+
+                        logging.getLogger(__name__).debug(f"Config reload error: {e}")
 
             except asyncio.CancelledError:
                 break

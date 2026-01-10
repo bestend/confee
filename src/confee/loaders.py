@@ -133,9 +133,8 @@ class ConfigLoader:
         with open(path, "rb") as f:
             try:
                 return tomllib.load(f)
-            except (ValueError, KeyError) as e:
-                # tomllib/tomli raise various exceptions for invalid TOML.
-                # TOMLDecodeError inherits from ValueError.
+            except ValueError as e:
+                # tomllib/tomli raise TOMLDecodeError (inherits from ValueError) for invalid TOML.
                 raise ValueError(f"Invalid TOML file: {file_path}\nError: {e}")
 
     @staticmethod

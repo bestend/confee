@@ -403,8 +403,11 @@ def register_builtin_plugins() -> None:
 
             except ImportError:
                 pass  # TOML not available
-    except Exception:
-        pass  # Silently skip if TOML support unavailable
+    except Exception as e:
+        # Log TOML plugin registration errors instead of silently suppressing.
+        import logging
+
+        logging.getLogger(__name__).debug(f"TOML plugin registration skipped: {e}")
 
 
 # Auto-register built-in plugins

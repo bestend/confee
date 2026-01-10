@@ -93,6 +93,11 @@ class ConfigBase(BaseModel):
     # Class-level frozen state tracking
     _frozen_instances: ClassVar[Set[int]] = set()
 
+    def __del__(self) -> None:
+        """Ensure frozen state is cleaned up when the instance is garbage-collected."""
+        instance_id = id(self)
+        self._frozen_instances.discard(instance_id)
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary."""
         return self.model_dump()

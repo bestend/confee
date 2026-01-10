@@ -94,3 +94,8 @@ no_error_summary = false
 testpaths = ["tests"]
 python_files = "test_*.py"
 addopts = "-v --cov=confee --cov-report=term-missing"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.3.0",
+]

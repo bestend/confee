@@ -255,7 +255,7 @@ config = AppConfig.load(config_file="config.yaml")
 
 # Freeze to prevent modifications
 config.freeze()
-config.name = "new"  # Raises FrozenInstanceError
+config.name = "new"  # Raises AttributeError
 
 # Check frozen state
 if config.is_frozen():
@@ -324,7 +324,7 @@ config2 = AppConfig(name="app2", workers=8)
 
 # Compare configurations
 diff = config1.diff(config2)
-# {'name': {'old': 'app1', 'new': 'app2'}, 'workers': {'old': 4, 'new': 8}}
+# {'name': ('app1', 'app2'), 'workers': (4, 8)}
 
 # Merge configurations
 merged = config1.merge(config2)  # config2 values take precedence

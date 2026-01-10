@@ -6,7 +6,7 @@ for use in async/await contexts and for loading remote configurations.
 
 import asyncio
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Type, TypeVar, Union
 
 from .config import ConfigBase
 
@@ -188,8 +188,7 @@ class AsyncConfigLoader:
 
 
 # Type alias for watch callback
-# Note: Using string literal for forward reference compatibility
-AsyncWatchCallback = "Callable[[Dict[str, Any], Dict[str, Any]], Awaitable[None]]"
+AsyncWatchCallback = Callable[[Dict[str, Any], Dict[str, Any]], Awaitable[None]]
 
 
 class ConfigWatcher:

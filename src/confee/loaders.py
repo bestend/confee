@@ -1,8 +1,9 @@
-"""Configuration loaders for YAML, JSON, and other formats."""
+"""Configuration loaders for YAML, JSON, TOML and other formats."""
 
 import json
+import sys
 from pathlib import Path
-from typing import Any, Dict, Type, TypeVar, Union
+from typing import Any, Dict, Optional, Type, TypeVar, Union
 
 import yaml  # type: ignore[import-untyped]
 
@@ -10,14 +11,50 @@ from .config import ConfigBase
 
 T = TypeVar("T", bound=ConfigBase)
 
+# TOML support (Python 3.11+ built-in, or tomli for older versions)
+_toml_available = False
+tomllib: Optional[Any] = None
+
+if sys.version_info >= (3, 11):
+    try:
+        import tomllib
+
+        _toml_available = True
+    except ImportError:
+        # tomllib should be built-in for Python 3.11+, but in rare edge cases
+        # (e.g., custom Python builds), it may be unavailable. Gracefully disable
+        # TOML support so the rest of the library remains functional.
+        pass
+else:
+    try:
+        import tomli as tomllib  # type: ignore
+
+        _toml_available = True
+    except ImportError:
+        # tomli is an optional dependency for Python < 3.11.
+        # TOML support will be disabled if not installed; users can install it
+        # via `pip install confee[all]` or `pip install tomli`.
+        pass
+
 
 class ConfigLoader:
     """Flexible configuration file loader with automatic format detection.
 
-    Supports YAML and JSON formats. Automatically detects format based on file extension.
+    Supports YAML, JSON, and TOML formats. Automatically detects format based on file extension.
+    Integrates with the plugin system for custom format support.
+
+    Examples:
+        >>> # Load YAML config
+        >>> data = ConfigLoader.load("config.yaml")
+
+        >>> # Load TOML config (Python 3.11+ or with tomli)
+        >>> data = ConfigLoader.load("config.toml")
+
+        >>> # Load from pyproject.toml [tool.confee] section
+        >>> data = ConfigLoader.load_pyproject("pyproject.toml")
     """
 
-    SUPPORTED_FORMATS = {".yaml", ".yml", ".json"}
+    SUPPORTED_FORMATS = {".yaml", ".yml", ".json", ".toml"}
 
     @staticmethod
     def detect_format(file_path: Union[str, Path]) -> str:
@@ -25,11 +62,17 @@ class ConfigLoader:
         path = Path(file_path)
         suffix = path.suffix.lower()
 
-        if suffix not in ConfigLoader.SUPPORTED_FORMATS:
-            raise ValueError(
-                f"Unsupported file format: {suffix}. "
-                f"Supported formats: {ConfigLoader.SUPPORTED_FORMATS}"
-            )
+        # Check plugin registry for additional formats
+        try:
+            from .plugins import PluginRegistry
+
+            plugin_extensions = set(PluginRegistry.list_extensions())
+            all_formats = ConfigLoader.SUPPORTED_FORMATS | plugin_extensions
+        except ImportError:
+            all_formats = ConfigLoader.SUPPORTED_FORMATS
+
+        if suffix not in all_formats:
+            raise ValueError(f"Unsupported file format: {suffix}. Supported formats: {all_formats}")
         return suffix
 
     @staticmethod
@@ -61,8 +104,69 @@ class ConfigLoader:
                 raise ValueError(f"Invalid JSON file: {file_path}\nError: {e}")
 
     @staticmethod
+    def load_toml(file_path: Union[str, Path]) -> Dict[str, Any]:
+        """Load TOML configuration file.
+
+        Requires Python 3.11+ or the 'tomli' package for older versions.
+
+        Args:
+            file_path: Path to TOML configuration file
+
+        Returns:
+            Configuration dictionary
+
+        Raises:
+            ImportError: If TOML support is not available
+            FileNotFoundError: If file doesn't exist
+            ValueError: If TOML is invalid
+        """
+        if not _toml_available or tomllib is None:
+            raise ImportError(
+                "TOML support requires Python 3.11+ or the 'tomli' package. "
+                "Install it with: pip install confee[toml] or pip install tomli"
+            )
+
+        path = Path(file_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Config file not found: {file_path}")
+
+        with open(path, "rb") as f:
+            try:
+                return tomllib.load(f)
+            except ValueError as e:
+                # tomllib/tomli raise TOMLDecodeError (inherits from ValueError) for invalid TOML.
+                raise ValueError(f"Invalid TOML file: {file_path}\nError: {e}")
+
+    @staticmethod
+    def load_pyproject(
+        file_path: Union[str, Path] = "pyproject.toml",
+        tool_name: str = "confee",
+    ) -> Dict[str, Any]:
+        """Load configuration from pyproject.toml [tool.<name>] section.
+
+        Args:
+            file_path: Path to pyproject.toml file
+            tool_name: Tool section name (default: "confee")
+
+        Returns:
+            Configuration dictionary from [tool.<name>] section
+
+        Examples:
+            >>> # pyproject.toml:
+            >>> # [tool.confee]
+            >>> # debug = true
+            >>> # workers = 4
+            >>> config = ConfigLoader.load_pyproject()
+        """
+        data = ConfigLoader.load_toml(file_path)
+        tool_config = data.get("tool", {}).get(tool_name, {})
+        return tool_config
+
+    @staticmethod
     def load(file_path: Union[str, Path], strict: bool = True) -> Dict[str, Any]:
         """Load configuration file with automatic format detection.
+
+        Supports YAML, JSON, TOML and plugin-registered formats.
 
         Args:
             file_path: Path to configuration file
@@ -73,13 +177,40 @@ class ConfigLoader:
         """
         try:
             file_format = ConfigLoader.detect_format(file_path)
+            path = Path(file_path)
 
+            # Try built-in loaders first
             if file_format in {".yaml", ".yml"}:
                 data = ConfigLoader.load_yaml(file_path)
             elif file_format == ".json":
                 data = ConfigLoader.load_json(file_path)
+            elif file_format == ".toml":
+                data = ConfigLoader.load_toml(file_path)
             else:
-                return {}
+                # Try plugin registry
+                try:
+                    from .plugins import PluginRegistry
+
+                    loader = PluginRegistry.get_loader(path)
+                    if loader:
+                        if callable(loader):
+                            data = loader(path)
+                        else:
+                            data = loader.load(path)
+                    else:
+                        return {}
+                except ImportError:
+                    return {}
+
+            # Run plugin hooks if available
+            try:
+                from .plugins import PluginRegistry
+
+                data = PluginRegistry.run_post_hooks(data)
+            except ImportError:
+                # Plugins module may not be available in minimal installations;
+                # continue without running post-processing hooks.
+                pass
 
             # Resolve file references in the loaded data
             base_dir = Path(file_path).parent

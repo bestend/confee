@@ -33,6 +33,9 @@ dependencies = [
 
 [project.optional-dependencies]
 cli = ["typer>=0.9.0"]
+remote = ["aiohttp>=3.8.0"]
+toml = ["tomli>=2.0.0;python_version<'3.11'"]
+all = ["typer>=0.9.0", "aiohttp>=3.8.0", "tomli>=2.0.0;python_version<'3.11'"]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",

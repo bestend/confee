@@ -2,6 +2,51 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-01-10
+
+### Added
+- **🗂️ TOML Support** — Native TOML file loading with `tomllib` (Python 3.11+) / `tomli` (Python 3.9-3.10)
+  - `ConfigLoader.load_toml()` for TOML files
+  - `ConfigLoader.load_pyproject()` for pyproject.toml [tool.xxx] sections
+- **🔌 Plugin System** — Extensible loader architecture for custom formats
+  - `@PluginRegistry.loader(".ext")` decorator for custom format loaders
+  - `@PluginRegistry.source("name")` decorator for custom data sources
+- **🔐 Secret Field Masking** — Protect sensitive configuration values
+  - `SecretField()` function to mark fields as sensitive
+  - `to_safe_dict()` / `to_safe_json()` methods to mask secrets in output
+- **🧊 Config Freezing** — Immutable configuration support
+  - `freeze()` / `unfreeze()` methods for runtime immutability
+  - `is_frozen()` to check frozen state
+  - `copy_unfrozen()` to create mutable copies
+- **📐 JSON Schema Export** — Generate JSON Schema from config classes
+  - `SchemaGenerator` class for schema generation
+  - `SchemaValidator` for schema-based validation
+  - `to_json_schema()` / `save_schema()` methods on ConfigBase
+- **⚡ Async Config Loading** — Non-blocking configuration loading
+  - `AsyncConfigLoader` with async/await support
+  - `load_remote()` for loading configs from URLs (requires `aiohttp`)
+  - `ConfigWatcher` for file change monitoring
+  - `ConfigMerger` for deep configuration merging
+- **🔄 Config Diff & Merge** — Compare and combine configurations
+  - `diff()` method to compare two configurations
+  - `merge()` method to combine configurations
+
+### Changed
+- **📦 Modular Architecture** — Split monolithic modules into focused components
+  - `colors.py` — ANSI color utilities with `Color` class and `ProgressIndicator`
+  - `error_formatter.py` — User-friendly validation error formatting
+  - `help_formatter.py` — Typer-style help generation and markdown docs
+  - `plugins.py` — Plugin registry system
+  - `schema.py` — JSON Schema generation utilities
+  - `async_loader.py` — Async loading and file watching
+- Improved `ConfigBase.print()` with `safe=True` option for secret masking
+
+### Dependencies
+- Added `tomli>=2.0.0` for Python < 3.11 (TOML support)
+- Added optional `aiohttp>=3.8.0` for remote config loading (`pip install confee[remote]`)
+
+---
+
 ## [0.2.2] - 2026-01-02
 
 ### Improved

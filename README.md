@@ -26,11 +26,15 @@ Hydra-style Configuration Management + Pydantic Type Safety + Typer-style Auto H
 ## ✨ Key Features
 
 - **🎯 Type-Safe Configuration** — Automatic type validation & IDE autocomplete with Pydantic V2
-- **📋 Multi-Format Support** — Automatic detection and parsing of YAML and JSON
+- **📋 Multi-Format Support** — Automatic detection and parsing of YAML, JSON, and TOML
 - **🔄 Flexible Override System** — Override values via CLI arguments and environment variables
 - **🏗️ Configuration Inheritance** — Merge and combine parent-child configurations
 - **📁 File Reference** — Load file contents with `@file:` & `@config:` prefixes
-- **🔐 Strict Mode** — Reject unknown fields or control validation error handling
+- **🔐 Secret Masking** — Mark sensitive fields with `SecretField()` for automatic masking
+- **🧊 Config Freezing** — Freeze configurations for runtime immutability
+- **📐 JSON Schema Export** — Generate JSON Schema from configuration classes
+- **⚡ Async Loading** — Non-blocking config loading with file watching support
+- **🔌 Plugin System** — Extend with custom format loaders and data sources
 - **📦 Zero Configuration** — Ready to use with sensible defaults
 - **⚙️ Parse Order Control** — Freely adjust priority of file/env/cli sources
 - **💬 Auto Help Generation** — Display all options and defaults with `--help` flag
@@ -43,6 +47,9 @@ Hydra-style Configuration Management + Pydantic Type Safety + Typer-style Auto H
 
 ```bash
 pip install confee
+
+# With optional features
+pip install confee[remote]  # For async remote config loading
 ```
 
 ---
@@ -194,6 +201,133 @@ class Config(ConfigBase):
 
 # Non-strict mode: Ignore unknown fields
 config = Config.load(strict=False)
+```
+
+---
+
+## 🆕 New in v0.3.0
+
+### TOML Support
+
+```python
+# Load from TOML file
+config = AppConfig.load(config_file="config.toml")
+
+# Load from pyproject.toml
+from confee import ConfigLoader
+data = ConfigLoader.load_pyproject("pyproject.toml", tool_name="myapp")
+```
+
+```toml
+# config.toml
+name = "my-app"
+debug = false
+workers = 8
+
+[database]
+host = "localhost"
+port = 5432
+```
+
+### Secret Field Masking
+
+```python
+from confee import ConfigBase, SecretField
+
+class AppConfig(ConfigBase):
+    name: str
+    api_key: str = SecretField(default="")
+    database_password: str = SecretField()
+
+config = AppConfig(name="app", api_key="secret123", database_password="pwd")
+
+# Safe output masks secrets
+print(config.to_safe_dict())
+# {'name': 'app', 'api_key': '***MASKED***', 'database_password': '***MASKED***'}
+
+config.print(safe=True)  # Pretty print with masked secrets
+```
+
+### Config Freezing
+
+```python
+config = AppConfig.load(config_file="config.yaml")
+
+# Freeze to prevent modifications
+config.freeze()
+config.name = "new"  # Raises AttributeError
+
+# Check frozen state
+if config.is_frozen():
+    config = config.copy_unfrozen()  # Create mutable copy
+    config.name = "new"
+```
+
+### JSON Schema Export
+
+```python
+from confee import SchemaGenerator
+
+# Generate JSON Schema
+schema = AppConfig.to_json_schema()
+AppConfig.save_schema("config.schema.json")
+
+# Validate data against schema
+from confee import SchemaValidator
+validator = SchemaValidator(AppConfig)
+is_valid = validator.validate({"name": "app", "workers": 4})
+```
+
+### Async Config Loading
+
+```python
+from confee import AsyncConfigLoader
+
+async def main():
+    # Load local file (static method - no instantiation needed)
+    config = await AsyncConfigLoader.load_as("config.yaml", AppConfig)
+    
+    # Load from URL (requires aiohttp) - returns dict
+    data = await AsyncConfigLoader.load_remote("https://example.com/config.yaml")
+    
+    # Watch for file changes
+    async def on_change(old_config, new_config):
+        print("Config changed:", new_config)
+    
+    watcher = await AsyncConfigLoader.watch("config.yaml", on_change)
+    # ... application runs ...
+    await watcher.stop()
+```
+
+### Plugin System
+
+```python
+from confee import PluginRegistry
+
+# Register custom loader
+@PluginRegistry.loader(".ini")
+def load_ini(path: str) -> dict:
+    import configparser
+    parser = configparser.ConfigParser()
+    parser.read(path)
+    return {s: dict(parser[s]) for s in parser.sections()}
+
+# Now .ini files are automatically supported
+config = AppConfig.load(config_file="config.ini")
+```
+
+### Config Diff & Merge
+
+```python
+config1 = AppConfig(name="app1", workers=4)
+config2 = AppConfig(name="app2", workers=8)
+
+# Compare configurations
+diff = config1.diff(config2)
+# {'name': ('app1', 'app2'), 'workers': (4, 8)}
+
+# Merge configurations
+merged = config1.merge(config2)  # config2 values take precedence
 ```
 
 ---

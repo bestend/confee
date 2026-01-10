@@ -31,10 +31,14 @@ class TestConfigLoader:
         """Test JSON format detection."""
         assert ConfigLoader.detect_format("config.json") == ".json"
 
+    def test_detect_toml_format(self):
+        """Test TOML format detection."""
+        assert ConfigLoader.detect_format("config.toml") == ".toml"
+
     def test_detect_unsupported_format(self):
         """Test that unsupported formats raise error."""
         with pytest.raises(ValueError):
-            ConfigLoader.detect_format("config.toml")
+            ConfigLoader.detect_format("config.xml")
 
     def test_load_yaml_file(self):
         """Test loading YAML file."""

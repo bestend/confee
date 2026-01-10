@@ -39,6 +39,7 @@ dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-mock>=3.10.0",
+    "pytest-asyncio>=0.21.0",
     "black>=23.0.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
@@ -69,7 +70,7 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "D", "SIM"]
 ignore = [
-    "D100", "D101", "D102", "D104", "D105", "D200", "D205", "D415", "D417",
+    "D100", "D101", "D102", "D104", "D105", "D107", "D200", "D205", "D415", "D417",
     "N818", "N806", "N814",
     "E501",  # Line too long (conflicts with black)
     "B904", "B007",  # Exception handling and loop control
@@ -94,6 +95,8 @@ no_error_summary = false
 testpaths = ["tests"]
 python_files = "test_*.py"
 addopts = "-v --cov=confee --cov-report=term-missing"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [dependency-groups]
 dev = [

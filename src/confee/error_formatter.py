@@ -1,11 +1,42 @@
 """User-friendly error formatting for validation errors."""
 
-import re
-from typing import Any, Dict, List
+from __future__ import annotations
 
-from pydantic_core import ErrorDetails
+import re
+from typing import TYPE_CHECKING, Any, Literal
+
+if TYPE_CHECKING:
+    from pydantic_core import ErrorDetails
 
 from .colors import Color
+
+# Error type to user-friendly message mapping for Pydantic V2
+_ERROR_TYPE_MESSAGES: dict[str, str] = {
+    "missing": "required field is missing",
+    "string_type": "expected a string value",
+    "int_type": "expected an integer value",
+    "float_type": "expected a float value",
+    "bool_type": "expected a boolean value",
+    "list_type": "expected a list/array value",
+    "dict_type": "expected a dictionary/object value",
+    "none_not_allowed": "null/None is not allowed",
+    "int_parsing": "failed to parse as integer",
+    "float_parsing": "failed to parse as float",
+    "bool_parsing": "failed to parse as boolean",
+    "string_too_short": "string is too short",
+    "string_too_long": "string is too long",
+    "greater_than": "value must be greater than the minimum",
+    "greater_than_equal": "value must be greater than or equal to the minimum",
+    "less_than": "value must be less than the maximum",
+    "less_than_equal": "value must be less than or equal to the maximum",
+    "literal_error": "value is not one of the allowed options",
+    "enum": "value is not a valid enum member",
+    "url_parsing": "invalid URL format",
+    "json_invalid": "invalid JSON format",
+    "value_error": "invalid value",
+    "assertion_error": "assertion failed",
+    "extra_forbidden": "extra fields are not permitted",
+}
 
 
 class ErrorFormatter:
@@ -21,7 +52,9 @@ class ErrorFormatter:
     """
 
     @staticmethod
-    def format_validation_error(error: Exception, style: str = "compact") -> str:
+    def format_validation_error(
+        error: Exception, style: Literal["compact", "verbose"] = "compact"
+    ) -> str:
         """Format Pydantic validation errors in a readable way.
 
         Args:
@@ -50,7 +83,9 @@ class ErrorFormatter:
         return f"{Color.RED}Error: {error_str}{Color.RESET}"
 
     @staticmethod
-    def _format_pydantic_errors(errors: List[ErrorDetails], style: str) -> str:
+    def _format_pydantic_errors(
+        errors: list[ErrorDetails], style: Literal["compact", "verbose"]
+    ) -> str:
         """Format Pydantic V2 validation errors.
 
         Args:
@@ -65,8 +100,7 @@ class ErrorFormatter:
         return ErrorFormatter._format_verbose_errors(errors)
 
     @staticmethod
-    def _format_compact_errors(errors: List[ErrorDetails]) -> str:
-        """Format errors in compact single-line style."""
+    def _format_compact_errors(errors: list[ErrorDetails]) -> str:
         if not errors:
             return "Config error: validation failed"
 
@@ -78,14 +112,17 @@ class ErrorFormatter:
 
         if error_type == "missing":
             return f"Config error: missing required field '{field}'"
-        return f"Config error: field '{field}' - {msg}"
+
+        friendly_msg = _ERROR_TYPE_MESSAGES.get(error_type, msg)
+        suffix = f" ({len(errors) - 1} more)" if len(errors) > 1 else ""
+        return f"Config error: field '{field}' - {friendly_msg}{suffix}"
 
     @staticmethod
-    def _format_verbose_errors(errors: List[ErrorDetails]) -> str:
-        """Format errors in verbose multi-line style with colors."""
-        lines = []
-        lines.append(f"{Color.BOLD}{Color.RED}❌ Configuration Validation Error{Color.RESET}")
-        lines.append("")
+    def _format_verbose_errors(errors: list[ErrorDetails]) -> str:
+        lines: list[str] = [
+            f"{Color.BOLD}{Color.RED}❌ Configuration Validation Error{Color.RESET}",
+            "",
+        ]
 
         if errors:
             lines.append(
@@ -100,46 +137,69 @@ class ErrorFormatter:
             lines.append("")
 
         lines.extend(ErrorFormatter._get_fix_suggestions())
-
         return "\n".join(lines)
 
     @staticmethod
-    def _format_single_error(idx: int, error_detail: ErrorDetails) -> List[str]:
-        """Format a single error detail."""
-        lines = []
-
+    def _format_single_error(idx: int, error_detail: ErrorDetails) -> list[str]:
         loc = error_detail.get("loc", ("unknown",))
         field = ".".join(str(p) for p in loc) if loc else "unknown"
         error_type = error_detail.get("type", "unknown_error")
         msg = error_detail.get("msg", "validation failed")
         input_value = error_detail.get("input", None)
+        ctx = error_detail.get("ctx", {})
 
-        lines.append(f"  {Color.BRIGHT_MAGENTA}[{idx}] Field: {Color.BOLD}{field}{Color.RESET}")
-        lines.append(f"      {Color.YELLOW}Error: {msg}{Color.RESET}")
-        lines.append(f"      {Color.DIM}Type: {error_type}{Color.RESET}")
+        lines: list[str] = [
+            f"  {Color.BRIGHT_MAGENTA}[{idx}] Field: {Color.BOLD}{field}{Color.RESET}",
+            f"      {Color.YELLOW}Error: {msg}{Color.RESET}",
+            f"      {Color.DIM}Type: {error_type}{Color.RESET}",
+        ]
 
         if input_value is not None:
-            lines.append(f"      {Color.DIM}Got: {repr(input_value)}{Color.RESET}")
+            input_repr = repr(input_value)
+            if len(input_repr) > 50:
+                input_repr = input_repr[:47] + "..."
+            lines.append(f"      {Color.DIM}Got: {input_repr}{Color.RESET}")
+
+        if ctx:
+            ctx_info = ErrorFormatter._format_context(ctx)
+            if ctx_info:
+                lines.append(f"      {Color.DIM}{ctx_info}{Color.RESET}")
 
         lines.append("")
-
         return lines
 
     @staticmethod
-    def _format_string_error(error_str: str, style: str) -> str:
-        """Format errors from string representation."""
+    def _format_context(ctx: dict[str, Any]) -> str:
+        parts: list[str] = []
+        if "min_length" in ctx:
+            parts.append(f"min_length={ctx['min_length']}")
+        if "max_length" in ctx:
+            parts.append(f"max_length={ctx['max_length']}")
+        if "gt" in ctx:
+            parts.append(f"must be > {ctx['gt']}")
+        if "ge" in ctx:
+            parts.append(f"must be >= {ctx['ge']}")
+        if "lt" in ctx:
+            parts.append(f"must be < {ctx['lt']}")
+        if "le" in ctx:
+            parts.append(f"must be <= {ctx['le']}")
+        if "expected" in ctx:
+            parts.append(f"expected: {ctx['expected']}")
+        return ", ".join(parts)
+
+    @staticmethod
+    def _format_string_error(error_str: str, style: Literal["compact", "verbose"]) -> str:
         if style == "compact":
-            # Try to extract field name
             if "field required" in error_str.lower():
                 match = re.search(r"(\w+)\s*\n\s*Field required", error_str)
                 if match:
                     return f"Config error: missing required field '{match.group(1)}'"
             return "Config error: validation failed"
 
-        # Verbose format
-        lines = []
-        lines.append(f"{Color.BOLD}{Color.RED}❌ Configuration Validation Error{Color.RESET}")
-        lines.append("")
+        lines: list[str] = [
+            f"{Color.BOLD}{Color.RED}❌ Configuration Validation Error{Color.RESET}",
+            "",
+        ]
 
         if "field required" in error_str.lower():
             match = re.search(r"(\w+)\s*\n\s*Field required", error_str)
@@ -157,12 +217,10 @@ class ErrorFormatter:
 
         lines.append("")
         lines.extend(ErrorFormatter._get_fix_suggestions())
-
         return "\n".join(lines)
 
     @staticmethod
-    def _get_fix_suggestions() -> List[str]:
-        """Get common fix suggestions."""
+    def _get_fix_suggestions() -> list[str]:
         return [
             f"  {Color.CYAN}💡 How to fix:{Color.RESET}",
             "    1. Add the required field to your configuration file",
@@ -181,25 +239,15 @@ class FieldErrorDetail:
         error_type: str,
         message: str,
         input_value: Any | None = None,
-        context: Dict[str, Any] | None = None,
+        context: dict[str, Any] | None = None,
     ):
-        """Initialize error detail.
-
-        Args:
-            field: Field name (can be dot-notation for nested)
-            error_type: Type of error (e.g., 'missing', 'type_error')
-            message: Human-readable error message
-            input_value: The invalid input value (if any)
-            context: Additional error context
-        """
         self.field = field
         self.error_type = error_type
         self.message = message
         self.input_value = input_value
         self.context = context or {}
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary representation."""
+    def to_dict(self) -> dict[str, Any]:
         return {
             "field": self.field,
             "error_type": self.error_type,

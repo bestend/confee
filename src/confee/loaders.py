@@ -259,6 +259,7 @@ class ConfigLoader:
         data: Dict[str, Any],
         base_dir: Path,
         file_prefix: str = "@file:",
+        _visited: frozenset[Path] | None = None,
     ) -> Dict[str, Any]:
         """Resolve file references in configuration values.
 
@@ -272,9 +273,13 @@ class ConfigLoader:
             data: Configuration dictionary
             base_dir: Base directory for relative path resolution
             file_prefix: Prefix for file references (default: "@file:")
+            _visited: Internal parameter to track visited files for cycle detection
 
         Returns:
             Configuration dictionary with file references resolved
+
+        Raises:
+            RecursionError: If circular reference is detected
 
         Examples:
             # 텍스트 파일 로드
@@ -289,6 +294,9 @@ class ConfigLoader:
             >>> resolved = ConfigLoader.resolve_file_references(data, Path("."))
             >>> resolved["db"]  # {'host': 'localhost', 'port': 5432, ...}
         """
+        if _visited is None:
+            _visited = frozenset()
+
         resolved: Dict[str, Any] = {}
 
         for key, value in data.items():
@@ -305,34 +313,43 @@ class ConfigLoader:
                     file_path_value = value[len("@config:") :]
 
                 if prefix_match and file_path_value:
-                    file_full_path = base_dir / file_path_value
+                    file_full_path = (base_dir / file_path_value).resolve()
 
                     try:
                         if not file_full_path.exists():
                             raise FileNotFoundError(f"Referenced file not found: {file_full_path}")
 
                         if prefix_match == "@file:":
-                            # 텍스트 파일 로드
                             with open(file_full_path, encoding="utf-8") as f:
                                 resolved[key] = f.read().strip()
 
                         elif prefix_match == "@config:":
-                            # YAML 파일 로드
+                            if file_full_path in _visited:
+                                cycle_path = (
+                                    " -> ".join(str(p) for p in _visited) + f" -> {file_full_path}"
+                                )
+                                raise RecursionError(
+                                    f"Circular config reference detected: {cycle_path}"
+                                )
+
+                            new_visited = _visited | {file_full_path}
                             yaml_data = ConfigLoader.load_yaml(file_full_path)
-                            # 재귀적으로 참조 해석
                             resolved[key] = ConfigLoader.resolve_file_references(
-                                yaml_data, file_full_path.parent, file_prefix
+                                yaml_data, file_full_path.parent, file_prefix, new_visited
                             )
 
                     except Exception as e:
+                        if isinstance(e, RecursionError):
+                            raise
                         print(f"Warning: Failed to resolve file reference {value}: {e}")
-                        resolved[key] = value  # Keep original value on error
+                        resolved[key] = value
                 else:
                     resolved[key] = value
 
             elif isinstance(value, dict):
-                # Recursively resolve nested dictionaries
-                resolved[key] = ConfigLoader.resolve_file_references(value, base_dir, file_prefix)
+                resolved[key] = ConfigLoader.resolve_file_references(
+                    value, base_dir, file_prefix, _visited
+                )
             else:
                 resolved[key] = value
 

@@ -155,17 +155,33 @@ class ConfigParser:
         Returns:
             Parsed configuration instance
 
+        Raises:
+            ValidationError: In strict mode when required fields are missing or
+                            validation fails
+
         Examples:
             >>> parser = ConfigParser("./configs")
             >>> config = parser.parse("config.yaml", AppConfig)
         """
+        from pydantic import ValidationError
+
+        from .error_formatter import ErrorFormatter
+
         config_dict = self.load_config_file(config_file)
         resolved_config = self.resolve_defaults(config_dict)
 
         try:
             return config_class(**resolved_config)
+        except ValidationError as e:
+            if self.strict:
+                raise
+            print(f"Warning: {ErrorFormatter.format_validation_error(e, style='compact')}")
+            try:
+                return config_class.model_construct(**resolved_config)
+            except Exception:
+                raise e from None
         except Exception as e:
             if self.strict:
                 raise
-            print(f"Warning: Configuration validation failed: {e}")
-            return config_class()
+            print(f"Warning: Configuration parsing failed: {e}")
+            raise

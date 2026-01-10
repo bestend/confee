@@ -311,3 +311,26 @@ class TestEdgeCases:
 
         # List field is masked (implementation masks each item in list)
         assert safe_data["passwords"] == ["***MASKED***", "***MASKED***", "***MASKED***"]
+
+    def test_list_of_configbase_with_secrets(self):
+        """Test masking secrets in list of nested ConfigBase objects."""
+
+        class DbConfig(ConfigBase):
+            host: str
+            password: str = SecretField()
+
+        class AppConfig(ConfigBase):
+            databases: list[DbConfig]
+
+        config = AppConfig(
+            databases=[
+                DbConfig(host="db1.example.com", password="pass1"),
+                DbConfig(host="db2.example.com", password="pass2"),
+            ]
+        )
+        safe_data = config.to_safe_dict()
+
+        assert safe_data["databases"][0]["host"] == "db1.example.com"
+        assert safe_data["databases"][0]["password"] == "***MASKED***"
+        assert safe_data["databases"][1]["host"] == "db2.example.com"
+        assert safe_data["databases"][1]["password"] == "***MASKED***"

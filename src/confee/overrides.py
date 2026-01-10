@@ -2,7 +2,7 @@
 
 import os
 import sys
-from typing import Any, Dict, List, Tuple, Type, TypeVar
+from typing import Any, Dict, List, Literal, Tuple, Type, TypeVar
 
 # Import from new modular components
 from .colors import Color
@@ -312,23 +312,31 @@ class OverrideHandler:
             >>> nested = OverrideHandler._flatten_to_nested(flat)
             >>> nested
             {'a': {'b': {'c': 'value', 'd': 'value2'}}, 'x': 'y'}
+
+        Raises:
+            ValueError: If a path conflicts with an existing non-dict value
         """
         nested: Dict[str, Any] = {}
 
         for key, value in flat_dict.items():
             if "." not in key:
+                if key in nested and isinstance(nested[key], dict):
+                    raise ValueError(f"Cannot set '{key}' to scalar value: nested keys exist")
                 nested[key] = value
             else:
                 parts = key.split(".")
                 current = nested
 
-                # Navigate/create nested structure
                 for i, part in enumerate(parts[:-1]):
                     if part not in current:
                         current[part] = {}
+                    elif not isinstance(current[part], dict):
+                        path_so_far = ".".join(parts[: i + 1])
+                        raise ValueError(
+                            f"Cannot create nested key '{key}': '{path_so_far}' is not a dict"
+                        )
                     current = current[part]
 
-                # Set the value at the leaf
                 current[parts[-1]] = value
 
         return nested
@@ -429,7 +437,7 @@ class OverrideHandler:
         Color.enable(not (bool(no_color_env) or no_color_flag))
 
         # Resolve verbosity style
-        style = "compact"
+        style: Literal["compact", "verbose"] = "compact"
         if env_verbosity:
             if env_verbosity.lower() in ("verbose", "rich", "detailed"):
                 style = "verbose"

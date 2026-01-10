@@ -321,3 +321,37 @@ class TestOverrideMatrix:
             assert cfg.debug is True
         finally:
             sys.stdout = old_stdout
+
+
+class TestFlattenToNested:
+    """Test _flatten_to_nested type conflict handling."""
+
+    def test_flatten_simple_keys(self):
+        """Test simple non-dotted keys work correctly."""
+        flat = {"a": "value", "b": 123}
+        nested = OverrideHandler._flatten_to_nested(flat)
+        assert nested == {"a": "value", "b": 123}
+
+    def test_flatten_nested_keys(self):
+        """Test dotted keys create nested structure."""
+        flat = {"a.b.c": "value", "a.b.d": "value2", "x": "y"}
+        nested = OverrideHandler._flatten_to_nested(flat)
+        assert nested == {"a": {"b": {"c": "value", "d": "value2"}}, "x": "y"}
+
+    def test_flatten_conflict_scalar_then_nested_raises(self):
+        """Scalar followed by nested key should raise ValueError."""
+        flat = {"a": "scalar", "a.b": "nested"}
+        with pytest.raises(ValueError, match="is not a dict"):
+            OverrideHandler._flatten_to_nested(flat)
+
+    def test_flatten_conflict_nested_then_scalar_raises(self):
+        """Nested key followed by scalar should raise ValueError."""
+        flat = {"a.b": "nested", "a": "scalar"}
+        with pytest.raises(ValueError, match="nested keys exist"):
+            OverrideHandler._flatten_to_nested(flat)
+
+    def test_flatten_deep_conflict_raises(self):
+        """Deep path conflict should raise ValueError."""
+        flat = {"a.b": "value", "a.b.c": "nested"}
+        with pytest.raises(ValueError, match="is not a dict"):
+            OverrideHandler._flatten_to_nested(flat)

@@ -258,3 +258,61 @@ debug: true
             assert data["debug"] is True
         finally:
             Path(temp_path).unlink()
+
+
+class TestCircularReferenceDetection:
+    """Test circular reference detection in config files."""
+
+    def test_circular_reference_raises_recursion_error(self):
+        """Circular @config: references should raise RecursionError."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            a_path = tmpdir / "a.yaml"
+            b_path = tmpdir / "b.yaml"
+
+            a_path.write_text("nested: '@config:b.yaml'\n")
+            b_path.write_text("nested: '@config:a.yaml'\n")
+
+            with pytest.raises(RecursionError, match="Circular config reference"):
+                ConfigLoader.load(str(a_path))
+
+    def test_self_reference_raises_recursion_error(self):
+        """Self-referencing config should raise RecursionError."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            config_path = tmpdir / "self.yaml"
+
+            config_path.write_text("self: '@config:self.yaml'\n")
+
+            with pytest.raises(RecursionError, match="Circular config reference"):
+                ConfigLoader.load(str(config_path))
+
+    def test_deep_circular_reference_detected(self):
+        """Circular reference through multiple files should be detected."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            a_path = tmpdir / "a.yaml"
+            b_path = tmpdir / "b.yaml"
+            c_path = tmpdir / "c.yaml"
+
+            a_path.write_text("ref: '@config:b.yaml'\n")
+            b_path.write_text("ref: '@config:c.yaml'\n")
+            c_path.write_text("ref: '@config:a.yaml'\n")
+
+            with pytest.raises(RecursionError, match="Circular config reference"):
+                ConfigLoader.load(str(a_path))
+
+    def test_valid_nested_config_references_work(self):
+        """Non-circular nested references should work correctly."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            main_path = tmpdir / "main.yaml"
+            db_path = tmpdir / "db.yaml"
+
+            db_path.write_text("host: localhost\nport: 5432\n")
+            main_path.write_text("app: myapp\ndatabase: '@config:db.yaml'\n")
+
+            data = ConfigLoader.load(str(main_path))
+            assert data["app"] == "myapp"
+            assert data["database"]["host"] == "localhost"
+            assert data["database"]["port"] == 5432

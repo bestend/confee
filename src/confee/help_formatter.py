@@ -1,7 +1,9 @@
 """Help text generation for configuration classes."""
 
+from __future__ import annotations
+
 import sys
-from typing import TYPE_CHECKING, Any, List, Tuple, Type
+from typing import TYPE_CHECKING, Any
 
 from .colors import Color
 
@@ -23,34 +25,20 @@ class HelpFormatter:
 
     @staticmethod
     def _is_config_base_subclass(field_type: Any) -> bool:
-        """Check if a field type is a ConfigBase subclass.
-
-        Handles Optional, Union, and other typing constructs.
-
-        Args:
-            field_type: The field annotation type
-
-        Returns:
-            True if the type is or contains a ConfigBase subclass
-        """
         import inspect
         from typing import get_args, get_origin
 
-        # Import here to avoid circular imports
         from .config import ConfigBase
 
-        # Handle None type
         if field_type is type(None):
             return False
 
-        # Direct class check
         if inspect.isclass(field_type):
             try:
                 return issubclass(field_type, ConfigBase)
             except TypeError:
                 return False
 
-        # Handle Optional, Union, etc.
         origin = get_origin(field_type)
         if origin is not None:
             args = get_args(field_type)
@@ -67,31 +55,19 @@ class HelpFormatter:
         return False
 
     @staticmethod
-    def _get_config_base_type(field_type: Any) -> Type["ConfigBase"] | None:  # type: ignore
-        """Extract the ConfigBase type from a field annotation.
-
-        Args:
-            field_type: The field annotation type
-
-        Returns:
-            The ConfigBase subclass if found, None otherwise
-        """
+    def _get_config_base_type(field_type: Any) -> type[ConfigBase] | None:
         import inspect
         from typing import get_args, get_origin
 
         from .config import ConfigBase
 
-        # Direct class check
         if inspect.isclass(field_type):
             try:
                 if issubclass(field_type, ConfigBase):
                     return field_type
             except TypeError:
-                # issubclass() can raise TypeError for non-class or special typing constructs;
-                # in that case, we just treat the value as not being a ConfigBase subclass.
                 pass
 
-        # Handle Optional, Union, etc.
         origin = get_origin(field_type)
         if origin is not None:
             args = get_args(field_type)
@@ -106,6 +82,59 @@ class HelpFormatter:
                         continue
 
         return None
+
+    @staticmethod
+    def _format_type_annotation(field_type: Any) -> str:
+        import types
+        import typing
+
+        if field_type is None:
+            return "None"
+
+        origin = typing.get_origin(field_type)
+        args = typing.get_args(field_type)
+
+        if origin is typing.Union or isinstance(field_type, types.UnionType):
+            non_none_args = [a for a in args if a is not type(None)]
+            if len(non_none_args) == 1 and type(None) in args:
+                inner = HelpFormatter._format_type_annotation(non_none_args[0])
+                return f"{inner}?"
+            formatted = [HelpFormatter._format_type_annotation(a) for a in args]
+            return " | ".join(formatted)
+
+        if origin is typing.Literal:
+            values = ", ".join(repr(a) for a in args)
+            return f"Literal[{values}]"
+
+        if origin is list:
+            if args:
+                inner = HelpFormatter._format_type_annotation(args[0])
+                return f"list[{inner}]"
+            return "list"
+
+        if origin is dict:
+            if len(args) >= 2:
+                k = HelpFormatter._format_type_annotation(args[0])
+                v = HelpFormatter._format_type_annotation(args[1])
+                return f"dict[{k}, {v}]"
+            return "dict"
+
+        if origin is tuple:
+            if args:
+                inner = ", ".join(HelpFormatter._format_type_annotation(a) for a in args)
+                return f"tuple[{inner}]"
+            return "tuple"
+
+        if origin is set:
+            if args:
+                inner = HelpFormatter._format_type_annotation(args[0])
+                return f"set[{inner}]"
+            return "set"
+
+        if hasattr(field_type, "__name__"):
+            return field_type.__name__
+
+        return str(field_type).replace("typing.", "")
 
     @staticmethod
     def _format_default_field(field: Any) -> str:
@@ -157,22 +186,11 @@ class HelpFormatter:
 
     @staticmethod
     def _collect_fields_recursive(
-        config_class: Type["ConfigBase"],  # type: ignore
+        config_class: type[ConfigBase],
         prefix: str = "",
         max_depth: int = 5,
         visited: set | None = None,
-    ) -> List[Tuple[str, str, str, str]]:
-        """Recursively collect all fields including nested ConfigBase fields.
-
-        Args:
-            config_class: Configuration class to extract fields from
-            prefix: Prefix for nested field names (e.g., "workers.")
-            max_depth: Maximum recursion depth to prevent infinite loops
-            visited: Set of visited classes to prevent circular references
-
-        Returns:
-            List of tuples: (field_name, type_str, description, default_str)
-        """
+    ) -> list[tuple[str, str, str, str]]:
         if visited is None:
             visited = set()
 
@@ -182,7 +200,7 @@ class HelpFormatter:
         visited = visited.copy()
         visited.add(config_class)
 
-        field_info: List[Tuple[str, str, str, str]] = []
+        field_info: list[tuple[str, str, str, str]] = []
 
         if not hasattr(config_class, "model_fields"):
             return field_info
@@ -202,10 +220,7 @@ class HelpFormatter:
                 )
                 field_info.extend(nested_fields)
             else:
-                if field_type is not None and hasattr(field_type, "__name__"):
-                    type_str = field_type.__name__  # type: ignore[union-attr]
-                else:
-                    type_str = str(field_type)
+                type_str = HelpFormatter._format_type_annotation(field_type)
 
                 description_text = field.description or field_name.replace("_", " ")
                 if prefix:
@@ -219,7 +234,7 @@ class HelpFormatter:
 
     @staticmethod
     def generate_help(
-        config_class: Type["ConfigBase"],  # type: ignore
+        config_class: type[ConfigBase],
         program_name: str | None = None,
         description: str | None = None,
     ) -> str:
@@ -274,19 +289,11 @@ class HelpFormatter:
 
     @staticmethod
     def print_help(
-        config_class: Type["ConfigBase"],  # type: ignore
+        config_class: type[ConfigBase],
         program_name: str | None = None,
         description: str | None = None,
         exit_code: int = 0,
     ) -> None:
-        """Print help message and optionally exit.
-
-        Args:
-            config_class: Configuration class to generate help for
-            program_name: Name of the program
-            description: Custom description text
-            exit_code: Exit code (None to not exit)
-        """
         help_text = HelpFormatter.generate_help(config_class, program_name, description)
         print(help_text)
         if exit_code is not None:
@@ -294,7 +301,7 @@ class HelpFormatter:
 
     @staticmethod
     def generate_markdown_docs(
-        config_class: Type["ConfigBase"],  # type: ignore
+        config_class: type[ConfigBase],
         title: str | None = None,
     ) -> str:
         """Generate Markdown documentation for a configuration class.

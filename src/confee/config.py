@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from typing import Any, ClassVar, Dict, FrozenSet, List, Set, Type, TypeVar
+from weakref import WeakValueDictionary
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -90,13 +91,7 @@ class ConfigBase(BaseModel):
         str_strip_whitespace=True,
     )
 
-    # Class-level frozen state tracking
-    _frozen_instances: ClassVar[Set[int]] = set()
-
-    def __del__(self) -> None:
-        """Ensure frozen state is cleaned up when the instance is garbage-collected."""
-        instance_id = id(self)
-        self._frozen_instances.discard(instance_id)
+    _frozen_instances: ClassVar[WeakValueDictionary[int, "ConfigBase"]] = WeakValueDictionary()
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary."""
@@ -125,8 +120,14 @@ class ConfigBase(BaseModel):
 
         def mask_secrets(obj: Any, path: str = "") -> Any:
             if isinstance(obj, dict):
-                return {k: mask_secrets(v, f"{path}.{k}" if path else k) for k, v in obj.items()}
+                result = {}
+                for k, v in obj.items():
+                    child_path = f"{path}.{k}" if path else k
+                    result[k] = mask_secrets(v, child_path)
+                return result
             elif isinstance(obj, list):
+                if path in secret_fields:
+                    return [mask for _ in obj]
                 return [mask_secrets(item, path) for item in obj]
             elif path in secret_fields:
                 return mask
@@ -155,27 +156,48 @@ class ConfigBase(BaseModel):
         This method inspects the model's fields for the ``x-secret`` marker set
         by :func:`SecretField` and also recursively traverses any nested
         :class:`ConfigBase` subclasses to build dot-separated paths for nested
-        secret fields.
+        secret fields. Supports List[ConfigBase] types as well.
         """
         secret_fields: Set[str] = set()
 
         for name, field in cls.model_fields.items():
-            # Direct secret field on this model
             json_extra = field.json_schema_extra
             if isinstance(json_extra, dict) and json_extra.get("x-secret"):
                 secret_fields.add(name)
 
-            # Nested ConfigBase field: collect its secret fields with prefix
             field_type = field.annotation
-            try:
-                if isinstance(field_type, type) and issubclass(field_type, ConfigBase):
-                    for nested_secret in field_type._get_secret_fields():
-                        secret_fields.add(f"{name}.{nested_secret}")
-            except TypeError:
-                # field.annotation may not be a type (e.g. typing constructs); ignore
-                pass
+            inner_type = cls._extract_configbase_type(field_type)
+            if inner_type is not None:
+                for nested_secret in inner_type._get_secret_fields():
+                    secret_fields.add(f"{name}.{nested_secret}")
 
         return frozenset(secret_fields)
+
+    @staticmethod
+    def _extract_configbase_type(field_type: Any) -> Type["ConfigBase"] | None:
+        """Extract ConfigBase subclass from a type annotation (including generics)."""
+        import typing
+
+        if field_type is None:
+            return None
+
+        try:
+            if isinstance(field_type, type) and issubclass(field_type, ConfigBase):
+                return field_type
+        except TypeError:
+            pass
+
+        origin = typing.get_origin(field_type)
+        if origin in (list, List, set, frozenset, tuple):
+            args = typing.get_args(field_type)
+            if args:
+                for arg in args:
+                    try:
+                        if isinstance(arg, type) and issubclass(arg, ConfigBase):
+                            return arg
+                    except TypeError:
+                        pass
+        return None
 
     @classmethod
     def from_dict(cls: Type[T], data: Dict[str, Any]) -> T:
@@ -214,7 +236,7 @@ class ConfigBase(BaseModel):
             >>> config = AppConfig(name="myapp").freeze()
             >>> config.name = "other"  # Raises AttributeError
         """
-        ConfigBase._frozen_instances.add(id(self))
+        ConfigBase._frozen_instances[id(self)] = self
         return self
 
     def unfreeze(self: T) -> T:
@@ -223,7 +245,7 @@ class ConfigBase(BaseModel):
         Returns:
             Self (for method chaining)
         """
-        ConfigBase._frozen_instances.discard(id(self))
+        ConfigBase._frozen_instances.pop(id(self), None)
         return self
 
     def is_frozen(self) -> bool:

@@ -125,12 +125,27 @@ class PluginRegistry:
         ...     return dict(config)
     """
 
-    _loaders: Dict[str, LoaderPlugin] = {}
-    _loader_functions: Dict[str, LoaderFunction] = {}
-    _sources: Dict[str, SourcePlugin] = {}
-    _validators: List[ValidatorFunction] = []
-    _pre_load_hooks: List[HookFunction] = []
-    _post_load_hooks: List[HookFunction] = []
+    _loaders: Dict[str, LoaderPlugin] | None = None
+    _loader_functions: Dict[str, LoaderFunction] | None = None
+    _sources: Dict[str, SourcePlugin] | None = None
+    _validators: List[ValidatorFunction] | None = None
+    _pre_load_hooks: List[HookFunction] | None = None
+    _post_load_hooks: List[HookFunction] | None = None
+
+    @classmethod
+    def _ensure_initialized(cls) -> None:
+        if cls._loaders is None:
+            cls._loaders = {}
+        if cls._loader_functions is None:
+            cls._loader_functions = {}
+        if cls._sources is None:
+            cls._sources = {}
+        if cls._validators is None:
+            cls._validators = []
+        if cls._pre_load_hooks is None:
+            cls._pre_load_hooks = []
+        if cls._post_load_hooks is None:
+            cls._post_load_hooks = []
 
     @classmethod
     def register_loader(cls, loader: LoaderPlugin) -> None:
@@ -139,6 +154,8 @@ class PluginRegistry:
         Args:
             loader: Loader plugin instance
         """
+        cls._ensure_initialized()
+        assert cls._loaders is not None
         for ext in loader.extensions:
             cls._loaders[ext.lower()] = loader
 
@@ -150,6 +167,8 @@ class PluginRegistry:
             extension: File extension (e.g., ".toml")
             func: Loader function
         """
+        cls._ensure_initialized()
+        assert cls._loader_functions is not None
         cls._loader_functions[extension.lower()] = func
 
     @classmethod
@@ -184,6 +203,8 @@ class PluginRegistry:
         Args:
             source: Source plugin instance
         """
+        cls._ensure_initialized()
+        assert cls._sources is not None
         cls._sources[source.scheme.lower()] = source
 
     @classmethod
@@ -195,7 +216,8 @@ class PluginRegistry:
         Args:
             validator: Validator function that takes and returns a config dict
         """
-        cls._validators.append(validator)
+        cls._ensure_initialized()
+        cls._validators.append(validator)  # type: ignore[union-attr]
 
     @classmethod
     def validator(cls) -> Callable[[ValidatorFunction], ValidatorFunction]:
@@ -223,10 +245,11 @@ class PluginRegistry:
             hook: Hook function
             stage: "pre" (before loading) or "post" (after loading)
         """
+        cls._ensure_initialized()
         if stage == "pre":
-            cls._pre_load_hooks.append(hook)
+            cls._pre_load_hooks.append(hook)  # type: ignore[union-attr]
         else:
-            cls._post_load_hooks.append(hook)
+            cls._post_load_hooks.append(hook)  # type: ignore[union-attr]
 
     @classmethod
     def pre_load(cls) -> Callable[[HookFunction], HookFunction]:
@@ -273,15 +296,14 @@ class PluginRegistry:
         Returns:
             Loader plugin or function, or None if not found
         """
+        cls._ensure_initialized()
         ext = file_path.suffix.lower()
 
-        # Check plugin loaders first
-        if ext in cls._loaders:
-            return cls._loaders[ext]
+        if ext in cls._loaders:  # type: ignore[operator]
+            return cls._loaders[ext]  # type: ignore[index]
 
-        # Check function loaders
-        if ext in cls._loader_functions:
-            return cls._loader_functions[ext]
+        if ext in cls._loader_functions:  # type: ignore[operator]
+            return cls._loader_functions[ext]  # type: ignore[index]
 
         return None
 
@@ -295,7 +317,8 @@ class PluginRegistry:
         Returns:
             Source plugin, or None if not found
         """
-        for scheme, source in cls._sources.items():
+        cls._ensure_initialized()
+        for scheme, source in cls._sources.items():  # type: ignore[union-attr]
             if uri.startswith(f"{scheme}://"):
                 return source
         return None
@@ -313,7 +336,8 @@ class PluginRegistry:
         Raises:
             ValidationError: If validation fails
         """
-        for validator in cls._validators:
+        cls._ensure_initialized()
+        for validator in cls._validators:  # type: ignore[union-attr]
             config = validator(config)
         return config
 
@@ -327,7 +351,8 @@ class PluginRegistry:
         Returns:
             Modified configuration dictionary
         """
-        for hook in cls._pre_load_hooks:
+        cls._ensure_initialized()
+        for hook in cls._pre_load_hooks:  # type: ignore[union-attr]
             config = hook(config)
         return config
 
@@ -341,19 +366,20 @@ class PluginRegistry:
         Returns:
             Modified configuration dictionary
         """
-        for hook in cls._post_load_hooks:
+        cls._ensure_initialized()
+        for hook in cls._post_load_hooks:  # type: ignore[union-attr]
             config = hook(config)
         return config
 
     @classmethod
     def clear(cls) -> None:
         """Clear all registered plugins (useful for testing)."""
-        cls._loaders.clear()
-        cls._loader_functions.clear()
-        cls._sources.clear()
-        cls._validators.clear()
-        cls._pre_load_hooks.clear()
-        cls._post_load_hooks.clear()
+        cls._loaders = {}
+        cls._loader_functions = {}
+        cls._sources = {}
+        cls._validators = []
+        cls._pre_load_hooks = []
+        cls._post_load_hooks = []
 
     @classmethod
     def list_extensions(cls) -> List[str]:
@@ -362,8 +388,9 @@ class PluginRegistry:
         Returns:
             List of supported file extensions
         """
-        extensions = set(cls._loaders.keys())
-        extensions.update(cls._loader_functions.keys())
+        cls._ensure_initialized()
+        extensions = set(cls._loaders.keys())  # type: ignore[union-attr]
+        extensions.update(cls._loader_functions.keys())  # type: ignore[union-attr]
         return sorted(extensions)
 
     @classmethod
@@ -373,7 +400,8 @@ class PluginRegistry:
         Returns:
             List of supported URI schemes
         """
-        return sorted(cls._sources.keys())
+        cls._ensure_initialized()
+        return sorted(cls._sources.keys())  # type: ignore[union-attr]
 
 
 def register_builtin_plugins() -> None:

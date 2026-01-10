@@ -1,73 +1,40 @@
-"""Asynchronous configuration loading utilities.
+"""Asynchronous configuration loading utilities."""
 
-This module provides async versions of configuration loading functions
-for use in async/await contexts and for loading remote configurations.
-"""
+from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
+from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, List
+from typing import Any
+
+logger = logging.getLogger(__name__)
+
+# Type alias for watch callback
+AsyncWatchCallback = Callable[[dict[str, Any], dict[str, Any]], Awaitable[None]]
 
 
 class AsyncConfigLoader:
-    """Asynchronous configuration file loader.
-
-    Provides async methods for loading configuration files, useful for:
-    - Non-blocking file I/O in async applications
-    - Loading remote configurations (HTTP, S3)
-    - Parallel loading of multiple config files
-
-    Examples:
-        >>> async def main():
-        ...     data = await AsyncConfigLoader.load("config.yaml")
-        ...     config = AppConfig(**data)
-    """
+    """Asynchronous configuration file loader."""
 
     @staticmethod
     async def load(
         file_path: str | Path,
         strict: bool = True,
-    ) -> Dict[str, Any]:
-        """Load configuration file asynchronously.
-
-        Args:
-            file_path: Path to configuration file
-            strict: If True, raise error on invalid format
-
-        Returns:
-            Configuration dictionary
-
-        Examples:
-            >>> config = await AsyncConfigLoader.load("config.yaml")
-        """
+    ) -> dict[str, Any]:
+        """Load configuration file asynchronously."""
         from .loaders import ConfigLoader
 
-        # Run file I/O in thread pool to avoid blocking
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, lambda: ConfigLoader.load(file_path, strict=strict))
 
     @staticmethod
     async def load_multiple(
-        file_paths: List[str | Path],
+        file_paths: list[str | Path],
         strict: bool = True,
-    ) -> List[Dict[str, Any]]:
-        """Load multiple configuration files in parallel.
-
-        Args:
-            file_paths: List of configuration file paths
-            strict: If True, raise error on invalid format
-
-        Returns:
-            List of configuration dictionaries
-
-        Examples:
-            >>> configs = await AsyncConfigLoader.load_multiple([
-            ...     "base.yaml",
-            ...     "production.yaml",
-            ...     "secrets.yaml",
-            ... ])
-        """
+    ) -> list[dict[str, Any]]:
+        """Load multiple configuration files in parallel."""
         tasks = [AsyncConfigLoader.load(path, strict=strict) for path in file_paths]
         return await asyncio.gather(*tasks)
 
@@ -75,29 +42,12 @@ class AsyncConfigLoader:
     async def load_remote(
         url: str,
         timeout: float = 30.0,
-        headers: Dict[str, str] | None = None,
-    ) -> Dict[str, Any]:
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
         """Load configuration from a remote URL.
-
-        Supports HTTP/HTTPS URLs. Automatically detects format from
-        Content-Type header or URL extension.
-
-        Args:
-            url: Remote configuration URL
-            timeout: Request timeout in seconds
-            headers: Optional HTTP headers
-
-        Returns:
-            Configuration dictionary
 
         Raises:
             ImportError: If aiohttp is not installed
-            ValueError: If content type is not supported
-
-        Examples:
-            >>> config = await AsyncConfigLoader.load_remote(
-            ...     "https://config.example.com/app.yaml"
-            ... )
         """
         try:
             import aiohttp
@@ -105,7 +55,7 @@ class AsyncConfigLoader:
             raise ImportError(
                 "aiohttp is required for remote config loading. "
                 "Install it with: pip install confee[remote]"
-            )
+            ) from None
 
         import json
 
@@ -119,81 +69,45 @@ class AsyncConfigLoader:
                 content = await response.text()
                 content_type = response.headers.get("Content-Type", "")
 
-                # Detect format from content type or URL
                 if "json" in content_type or url.endswith(".json"):
                     return json.loads(content)
-                elif "yaml" in content_type or url.endswith((".yaml", ".yml")):
+                if "yaml" in content_type or url.endswith((".yaml", ".yml")):
                     return yaml.safe_load(content)
-                else:
-                    # Try YAML first (superset of JSON)
-                    try:
-                        return yaml.safe_load(content)
-                    except Exception:
-                        return json.loads(content)
+
+                # Try YAML first (superset of JSON)
+                try:
+                    return yaml.safe_load(content)
+                except yaml.YAMLError:
+                    return json.loads(content)
 
     @staticmethod
     async def watch(
         file_path: str | Path,
-        callback: "AsyncWatchCallback",
+        callback: AsyncWatchCallback,
         interval: float = 1.0,
-    ) -> "ConfigWatcher":
-        """Watch a configuration file for changes.
-
-        Args:
-            file_path: Path to configuration file
-            callback: Async callback function called on changes
-            interval: Check interval in seconds
-
-        Returns:
-            ConfigWatcher instance (call .stop() to stop watching)
-
-        Examples:
-            >>> async def on_change(old, new):
-            ...     print(f"Config changed: {old} -> {new}")
-            ...
-            >>> watcher = await AsyncConfigLoader.watch("config.yaml", on_change)
-            >>> # Later...
-            >>> await watcher.stop()
-        """
+    ) -> ConfigWatcher:
+        """Watch a configuration file for changes."""
         watcher = ConfigWatcher(file_path, callback, interval)
         await watcher.start()
         return watcher
 
 
-# Type alias for watch callback
-AsyncWatchCallback = Callable[[Dict[str, Any], Dict[str, Any]], Awaitable[None]]
-
-
 class ConfigWatcher:
-    """Watch a configuration file for changes.
-
-    Examples:
-        >>> watcher = ConfigWatcher("config.yaml", on_change_callback)
-        >>> await watcher.start()
-        >>> # ... application runs ...
-        >>> await watcher.stop()
-    """
+    """Watch a configuration file for changes."""
 
     def __init__(
         self,
         file_path: str | Path,
-        callback: Any,  # AsyncWatchCallback
+        callback: AsyncWatchCallback,
         interval: float = 1.0,
     ):
-        """Initialize watcher.
-
-        Args:
-            file_path: Path to watch
-            callback: Async callback on changes
-            interval: Check interval in seconds
-        """
         self.file_path = Path(file_path)
         self.callback = callback
         self.interval = interval
-        self._task: asyncio.Task | None = None
+        self._task: asyncio.Task[None] | None = None
         self._running = False
         self._last_mtime: float | None = None
-        self._last_config: Dict[str, Any] | None = None
+        self._last_config: dict[str, Any] | None = None
 
     async def start(self) -> None:
         """Start watching for changes."""
@@ -202,7 +116,6 @@ class ConfigWatcher:
 
         self._running = True
 
-        # Get initial state
         if self.file_path.exists():
             self._last_mtime = self.file_path.stat().st_mtime
             self._last_config = await AsyncConfigLoader.load(self.file_path)
@@ -214,7 +127,6 @@ class ConfigWatcher:
         self._running = False
         if self._task:
             self._task.cancel()
-            # Task cancellation during shutdown is expected and can be safely ignored.
             with contextlib.suppress(asyncio.CancelledError):
                 await self._task
             self._task = None
@@ -240,50 +152,23 @@ class ConfigWatcher:
                             old_config = self._last_config
                             self._last_config = new_config
                             await self.callback(old_config or {}, new_config)
-                    except Exception as e:
-                        # Log or handle reload errors; config watch continues with previous config.
-                        # Errors during reload are non-fatal to keep the watcher running.
-                        import logging
-
-                        logging.getLogger(__name__).debug(f"Config reload error: {e}")
+                    except Exception:
+                        logger.debug("Config reload error", exc_info=True)
 
             except asyncio.CancelledError:
                 break
 
 
 class ConfigMerger:
-    """Utilities for merging multiple configurations.
-
-    Examples:
-        >>> base = {"debug": False, "workers": 4}
-        >>> override = {"debug": True}
-        >>> merged = ConfigMerger.deep_merge(base, override)
-        >>> merged
-        {'debug': True, 'workers': 4}
-    """
+    """Utilities for merging multiple configurations."""
 
     @staticmethod
     def deep_merge(
-        base: Dict[str, Any],
-        override: Dict[str, Any],
+        base: dict[str, Any],
+        override: dict[str, Any],
         merge_lists: bool = False,
-    ) -> Dict[str, Any]:
-        """Deep merge two configuration dictionaries.
-
-        Args:
-            base: Base configuration
-            override: Override configuration (takes precedence)
-            merge_lists: If True, concatenate lists; if False, replace
-
-        Returns:
-            Merged configuration dictionary
-
-        Examples:
-            >>> base = {"db": {"host": "localhost", "port": 5432}}
-            >>> override = {"db": {"host": "production-db"}}
-            >>> ConfigMerger.deep_merge(base, override)
-            {'db': {'host': 'production-db', 'port': 5432}}
-        """
+    ) -> dict[str, Any]:
+        """Deep merge two configuration dictionaries."""
         result = base.copy()
 
         for key, value in override.items():
@@ -301,26 +186,10 @@ class ConfigMerger:
 
     @staticmethod
     async def merge_files(
-        file_paths: List[str | Path],
+        file_paths: list[str | Path],
         merge_lists: bool = False,
-    ) -> Dict[str, Any]:
-        """Load and merge multiple configuration files.
-
-        Files are merged in order, with later files taking precedence.
-
-        Args:
-            file_paths: List of configuration file paths
-            merge_lists: If True, concatenate lists; if False, replace
-
-        Returns:
-            Merged configuration dictionary
-
-        Examples:
-            >>> config = await ConfigMerger.merge_files([
-            ...     "base.yaml",
-            ...     "production.yaml",
-            ... ])
-        """
+    ) -> dict[str, Any]:
+        """Load and merge multiple configuration files."""
         configs = await AsyncConfigLoader.load_multiple(file_paths)
 
         if not configs:

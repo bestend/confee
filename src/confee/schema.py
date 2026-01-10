@@ -36,6 +36,7 @@ class SchemaGenerator:
             title: Optional schema title (defaults to class name)
             description: Optional schema description (defaults to class docstring)
             include_defaults: Whether to include default values in schema
+                (currently reserved for future implementation)
 
         Returns:
             JSON Schema dictionary
@@ -44,6 +45,11 @@ class SchemaGenerator:
             >>> schema = SchemaGenerator.generate(AppConfig)
             >>> print(json.dumps(schema, indent=2))
         """
+        # TODO: Implement include_defaults parameter to optionally strip default
+        # values from the generated schema. Pydantic's model_json_schema() always
+        # includes defaults; post-processing would be needed to remove them.
+        _ = include_defaults  # Reserved for future implementation
+
         # Use Pydantic's built-in schema generation
         schema = config_class.model_json_schema()
 

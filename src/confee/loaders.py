@@ -21,7 +21,9 @@ if sys.version_info >= (3, 11):
 
         _toml_available = True
     except ImportError:
-        # tomllib is built-in for Python 3.11+, but may not be available in some environments.
+        # tomllib should be built-in for Python 3.11+, but in rare edge cases
+        # (e.g., custom Python builds), it may be unavailable. Gracefully disable
+        # TOML support so the rest of the library remains functional.
         pass
 else:
     try:
@@ -30,7 +32,8 @@ else:
         _toml_available = True
     except ImportError:
         # tomli is an optional dependency for Python < 3.11.
-        # TOML support will be disabled if not installed.
+        # TOML support will be disabled if not installed; users can install it
+        # via `pip install confee[all]` or `pip install tomli`.
         pass
 
 

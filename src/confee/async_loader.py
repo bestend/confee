@@ -49,7 +49,7 @@ class AsyncConfigLoader:
         from .loaders import ConfigLoader
 
         # Run file I/O in thread pool to avoid blocking
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, lambda: ConfigLoader.load(file_path, strict=strict))
 
     @staticmethod
@@ -188,6 +188,7 @@ class AsyncConfigLoader:
 
 
 # Type alias for watch callback
+# Note: Using string literal for forward reference compatibility
 AsyncWatchCallback = "Callable[[Dict[str, Any], Dict[str, Any]], Awaitable[None]]"
 
 
@@ -244,6 +245,7 @@ class ConfigWatcher:
             try:
                 await self._task
             except asyncio.CancelledError:
+                # Task cancellation during shutdown is expected and can be safely ignored.
                 pass
             self._task = None
 

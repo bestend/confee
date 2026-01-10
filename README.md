@@ -284,19 +284,19 @@ is_valid = validator.validate({"name": "app", "workers": 4})
 from confee import AsyncConfigLoader
 
 async def main():
-    loader = AsyncConfigLoader()
+    # Load local file (static method - no instantiation needed)
+    config = await AsyncConfigLoader.load_as("config.yaml", AppConfig)
     
-    # Load local file
-    config = await loader.load_as(AppConfig, "config.yaml")
-    
-    # Load from URL (requires aiohttp)
-    config = await loader.load_remote(AppConfig, "https://example.com/config.yaml")
+    # Load from URL (requires aiohttp) - returns dict
+    data = await AsyncConfigLoader.load_remote("https://example.com/config.yaml")
     
     # Watch for file changes
-    from confee import ConfigWatcher
-    watcher = ConfigWatcher("config.yaml")
-    async for config_data in watcher.watch():
-        print("Config changed:", config_data)
+    async def on_change(old_config, new_config):
+        print("Config changed:", new_config)
+    
+    watcher = await AsyncConfigLoader.watch("config.yaml", on_change)
+    # ... application runs ...
+    await watcher.stop()
 ```
 
 ### Plugin System

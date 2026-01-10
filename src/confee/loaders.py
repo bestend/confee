@@ -21,6 +21,7 @@ if sys.version_info >= (3, 11):
 
         _toml_available = True
     except ImportError:
+        # tomllib is built-in for Python 3.11+, but may not be available in some environments.
         pass
 else:
     try:
@@ -28,6 +29,8 @@ else:
 
         _toml_available = True
     except ImportError:
+        # tomli is an optional dependency for Python < 3.11.
+        # TOML support will be disabled if not installed.
         pass
 
 
@@ -127,7 +130,9 @@ class ConfigLoader:
         with open(path, "rb") as f:
             try:
                 return tomllib.load(f)
-            except Exception as e:
+            except (ValueError, KeyError) as e:
+                # tomllib/tomli raise various exceptions for invalid TOML.
+                # TOMLDecodeError inherits from ValueError.
                 raise ValueError(f"Invalid TOML file: {file_path}\nError: {e}")
 
     @staticmethod
@@ -201,6 +206,8 @@ class ConfigLoader:
 
                 data = PluginRegistry.run_post_hooks(data)
             except ImportError:
+                # Plugins module may not be available in minimal installations;
+                # continue without running post-processing hooks.
                 pass
 
             # Resolve file references in the loaded data

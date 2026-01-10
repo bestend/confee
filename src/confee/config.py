@@ -26,6 +26,13 @@ def SecretField(
     Returns:
         Pydantic Field with secret metadata
 
+    Note:
+        SecretField only masks values when using ``to_safe_dict()``, ``to_safe_json()``,
+        or ``print(safe=True)``. Direct attribute access (e.g., ``config.password``)
+        and standard serialization methods like ``model_dump()`` or ``to_dict()``
+        will still expose the actual values. Always use safe methods when logging
+        or displaying configuration.
+
     Examples:
         >>> class DbConfig(ConfigBase):
         ...     host: str
@@ -138,13 +145,30 @@ class ConfigBase(BaseModel):
 
     @classmethod
     def _get_secret_fields(cls) -> FrozenSet[str]:
-        """Get set of secret field names (including nested paths)."""
+        """Get set of secret field names (including nested paths).
+
+        This method inspects the model's fields for the ``x-secret`` marker set
+        by :func:`SecretField` and also recursively traverses any nested
+        :class:`ConfigBase` subclasses to build dot-separated paths for nested
+        secret fields.
+        """
         secret_fields: Set[str] = set()
 
         for name, field in cls.model_fields.items():
+            # Direct secret field on this model
             json_extra = field.json_schema_extra
             if isinstance(json_extra, dict) and json_extra.get("x-secret"):
                 secret_fields.add(name)
+
+            # Nested ConfigBase field: collect its secret fields with prefix
+            field_type = field.annotation
+            try:
+                if isinstance(field_type, type) and issubclass(field_type, ConfigBase):
+                    for nested_secret in field_type._get_secret_fields():
+                        secret_fields.add(f"{name}.{nested_secret}")
+            except TypeError:
+                # field.annotation may not be a type (e.g. typing constructs); ignore
+                pass
 
         return frozenset(secret_fields)
 
@@ -183,7 +207,7 @@ class ConfigBase(BaseModel):
 
         Examples:
             >>> config = AppConfig(name="myapp").freeze()
-            >>> config.name = "other"  # Raises FrozenInstanceError
+            >>> config.name = "other"  # Raises AttributeError
         """
         ConfigBase._frozen_instances.add(id(self))
         return self

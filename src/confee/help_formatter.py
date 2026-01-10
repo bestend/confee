@@ -1,7 +1,7 @@
 """Help text generation for configuration classes."""
 
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, List, Optional, Tuple, Type
 
 from .colors import Color
 
@@ -84,6 +84,8 @@ class HelpFormatter:
                 if issubclass(field_type, ConfigBase):
                     return field_type
             except TypeError:
+                # issubclass() can raise TypeError for non-class or special typing constructs;
+                # in that case, we just treat the value as not being a ConfigBase subclass.
                 pass
 
         # Handle Optional, Union, etc.

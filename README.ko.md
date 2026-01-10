@@ -284,19 +284,19 @@ is_valid = validator.validate({"name": "app", "workers": 4})
 from confee import AsyncConfigLoader
 
 async def main():
-    loader = AsyncConfigLoader()
+    # 로컬 파일 로드 (정적 메서드 - 인스턴스화 불필요)
+    config = await AsyncConfigLoader.load_as("config.yaml", AppConfig)
     
-    # 로컬 파일 로드
-    config = await loader.load_as(AppConfig, "config.yaml")
-    
-    # URL에서 로드 (aiohttp 필요)
-    config = await loader.load_remote(AppConfig, "https://example.com/config.yaml")
+    # URL에서 로드 (aiohttp 필요) - dict 반환
+    data = await AsyncConfigLoader.load_remote("https://example.com/config.yaml")
     
     # 파일 변경 감시
-    from confee import ConfigWatcher
-    watcher = ConfigWatcher("config.yaml")
-    async for config_data in watcher.watch():
-        print("Config 변경됨:", config_data)
+    async def on_change(old_config, new_config):
+        print("Config 변경됨:", new_config)
+    
+    watcher = await AsyncConfigLoader.watch("config.yaml", on_change)
+    # ... 애플리케이션 실행 ...
+    await watcher.stop()
 ```
 
 ### 플러그인 시스템

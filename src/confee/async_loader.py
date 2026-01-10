@@ -6,11 +6,7 @@ for use in async/await contexts and for loading remote configurations.
 
 import asyncio
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Type, TypeVar, Union
-
-from .config import ConfigBase
-
-T = TypeVar("T", bound=ConfigBase)
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
 
 class AsyncConfigLoader:
@@ -23,10 +19,8 @@ class AsyncConfigLoader:
 
     Examples:
         >>> async def main():
-        ...     config = await AsyncConfigLoader.load("config.yaml")
-        ...     app_config = await AsyncConfigLoader.load_as(
-        ...         "config.yaml", AppConfig
-        ...     )
+        ...     data = await AsyncConfigLoader.load("config.yaml")
+        ...     config = AppConfig(**data)
     """
 
     @staticmethod
@@ -51,28 +45,6 @@ class AsyncConfigLoader:
         # Run file I/O in thread pool to avoid blocking
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, lambda: ConfigLoader.load(file_path, strict=strict))
-
-    @staticmethod
-    async def load_as(
-        file_path: Union[str, Path],
-        config_class: Type[T],
-        strict: bool = True,
-    ) -> T:
-        """Load configuration into a specific class asynchronously.
-
-        Args:
-            file_path: Path to configuration file
-            config_class: Configuration class to instantiate
-            strict: If True, raise error on validation failure
-
-        Returns:
-            Configuration instance
-
-        Examples:
-            >>> config = await AsyncConfigLoader.load_as("config.yaml", AppConfig)
-        """
-        data = await AsyncConfigLoader.load(file_path, strict=strict)
-        return config_class(**data)
 
     @staticmethod
     async def load_multiple(

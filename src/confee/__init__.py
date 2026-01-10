@@ -29,10 +29,6 @@ Examples:
     >>> config.save_schema("schema.json")
 """
 
-__version__ = "0.3.0"
-__author__ = "JunSeok Kim <infend@gmail.com>"
-__license__ = "MIT"
-
 # Core classes
 from .config import ConfigBase, SecretField
 from .loaders import ConfigLoader, load_config, load_from_file

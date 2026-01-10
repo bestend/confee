@@ -163,6 +163,51 @@ class ConfigLoader:
         return tool_config
 
     @staticmethod
+    def load_remote(
+        url: str,
+        timeout: float = 30.0,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> Dict[str, Any]:
+        """Load configuration from a remote URL (synchronous).
+
+        Supports HTTP/HTTPS URLs. Automatically detects format from
+        Content-Type header or URL extension.
+
+        Args:
+            url: Remote configuration URL
+            timeout: Request timeout in seconds
+            headers: Optional HTTP headers
+
+        Returns:
+            Configuration dictionary
+
+        Examples:
+            >>> config = ConfigLoader.load_remote("https://example.com/config.yaml")
+        """
+        import urllib.request
+
+        req = urllib.request.Request(url, headers=headers or {})
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            content = response.read().decode("utf-8")
+            content_type = response.headers.get("Content-Type", "")
+
+            # Detect format from content type or URL
+            if "json" in content_type or url.endswith(".json"):
+                return json.loads(content)
+            elif "yaml" in content_type or url.endswith((".yaml", ".yml")):
+                return yaml.safe_load(content)
+            elif "toml" in content_type or url.endswith(".toml"):
+                if not _toml_available or tomllib is None:
+                    raise ImportError("TOML support requires Python 3.11+ or 'tomli' package")
+                return tomllib.loads(content)
+            else:
+                # Try YAML first (superset of JSON)
+                try:
+                    return yaml.safe_load(content)
+                except Exception:
+                    return json.loads(content)
+
+    @staticmethod
     def load(file_path: Union[str, Path], strict: bool = True) -> Dict[str, Any]:
         """Load configuration file with automatic format detection.
 

@@ -264,14 +264,17 @@ class TestVerbosityFlags:
             )
 
     def test_color_property_reset_and_enable(self):
-        """Cover Color._maybe/Color.reset property branch paths."""
-        from confee.overrides import Color
+        """Cover Color enable/disable functionality."""
+        from confee.colors import Color
 
         Color.enable(True)
-        # When enabled, reset property returns the escape code
-        c = Color()
-        assert c.reset == "\x1b[0m"
+        # When enabled, RESET returns the escape code
+        assert Color.RESET == "\x1b[0m"
 
         Color.enable(False)
-        # When disabled, reset property returns empty string
-        assert c.reset == ""
+        # When disabled, styled() returns text without colors
+        result = Color.styled("test", Color.RED)
+        assert result == "test"
+
+        # Re-enable for other tests
+        Color.enable(True)

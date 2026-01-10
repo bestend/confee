@@ -26,11 +26,15 @@ Hydra 스타일의 Configuration 관리 + Pydantic 타입 안전성 + Typer 스�
 ## ✨ 주요 기능
 
 - **🎯 타입 안전 Configuration** — Pydantic V2로 자동 타입 검증 및 IDE 자동완성
-- **📋 다중 포맷 지원** — YAML과 JSON 자동 감지 및 파싱
+- **📋 다중 포맷 지원** — YAML, JSON, TOML 자동 감지 및 파싱
 - **🔄 유연한 Override 시스템** — CLI 인자와 환경 변수로 값 오버라이드
 - **🏗️ Configuration 상속** — 부모-자식 설정 병합 및 조합
 - **📁 파일 참조** — `@file:` & `@config:` 접두사로 파일 내용 로드
-- **🔐 Strict 모드** — unknown fields 거부 또는 검증 오류 처리 방식 제어
+- **🔐 Secret 마스킹** — `SecretField()`로 민감 정보 자동 마스킹
+- **🧊 Config 동결** — 런타임 불변성을 위한 설정 동결
+- **📐 JSON Schema 내보내기** — 설정 클래스에서 JSON Schema 생성
+- **⚡ 비동기 로딩** — 파일 감시 지원과 함께 비차단 설정 로딩
+- **🔌 플러그인 시스템** — 커스텀 포맷 로더와 데이터 소스로 확장
 - **📦 Zero Configuration** — 기본값으로 즉시 사용 가능
 - **⚙️ Parse 순서 제어** — file/env/cli 소스의 우선순위 자유롭게 조정
 - **💬 자동 Help 생성** — `--help` 플래그로 모든 옵션과 기본값 표시
@@ -43,6 +47,9 @@ Hydra 스타일의 Configuration 관리 + Pydantic 타입 안전성 + Typer 스�
 
 ```bash
 pip install confee
+
+# 선택적 기능과 함께
+pip install confee[remote]  # 비동기 원격 설정 로딩용
 ```
 
 ---
@@ -194,6 +201,133 @@ class Config(ConfigBase):
 
 # Non-strict 모드: unknown fields 무시
 config = Config.load(strict=False)
+```
+
+---
+
+## 🆕 v0.3.0 신규 기능
+
+### TOML 지원
+
+```python
+# TOML 파일에서 로드
+config = AppConfig.load(config_file="config.toml")
+
+# pyproject.toml에서 로드
+from confee import ConfigLoader
+data = ConfigLoader.load_pyproject("pyproject.toml", tool_name="myapp")
+```
+
+```toml
+# config.toml
+name = "my-app"
+debug = false
+workers = 8
+
+[database]
+host = "localhost"
+port = 5432
+```
+
+### Secret 필드 마스킹
+
+```python
+from confee import ConfigBase, SecretField
+
+class AppConfig(ConfigBase):
+    name: str
+    api_key: str = SecretField(default="")
+    database_password: str = SecretField()
+
+config = AppConfig(name="app", api_key="secret123", database_password="pwd")
+
+# 안전한 출력으로 시크릿 마스킹
+print(config.to_safe_dict())
+# {'name': 'app', 'api_key': '***MASKED***', 'database_password': '***MASKED***'}
+
+config.print(safe=True)  # 마스킹된 시크릿으로 예쁘게 출력
+```
+
+### Config 동결
+
+```python
+config = AppConfig.load(config_file="config.yaml")
+
+# 수정 방지를 위해 동결
+config.freeze()
+config.name = "new"  # FrozenInstanceError 발생
+
+# 동결 상태 확인
+if config.is_frozen():
+    config = config.copy_unfrozen()  # 수정 가능한 복사본 생성
+    config.name = "new"
+```
+
+### JSON Schema 내보내기
+
+```python
+from confee import SchemaGenerator
+
+# JSON Schema 생성
+schema = AppConfig.to_json_schema()
+AppConfig.save_schema("config.schema.json")
+
+# 스키마로 데이터 검증
+from confee import SchemaValidator
+validator = SchemaValidator(AppConfig)
+is_valid = validator.validate({"name": "app", "workers": 4})
+```
+
+### 비동기 Config 로딩
+
+```python
+from confee import AsyncConfigLoader
+
+async def main():
+    loader = AsyncConfigLoader()
+    
+    # 로컬 파일 로드
+    config = await loader.load_as(AppConfig, "config.yaml")
+    
+    # URL에서 로드 (aiohttp 필요)
+    config = await loader.load_remote(AppConfig, "https://example.com/config.yaml")
+    
+    # 파일 변경 감시
+    from confee import ConfigWatcher
+    watcher = ConfigWatcher("config.yaml")
+    async for config_data in watcher.watch():
+        print("Config 변경됨:", config_data)
+```
+
+### 플러그인 시스템
+
+```python
+from confee import PluginRegistry
+
+# 커스텀 로더 등록
+@PluginRegistry.loader(".ini")
+def load_ini(path: str) -> dict:
+    import configparser
+    parser = configparser.ConfigParser()
+    parser.read(path)
+    return {s: dict(parser[s]) for s in parser.sections()}
+
+# 이제 .ini 파일 자동 지원
+config = AppConfig.load(config_file="config.ini")
+```
+
+### Config Diff & Merge
+
+```python
+config1 = AppConfig(name="app1", workers=4)
+config2 = AppConfig(name="app2", workers=8)
+
+# 설정 비교
+diff = config1.diff(config2)
+# {'name': {'old': 'app1', 'new': 'app2'}, 'workers': {'old': 4, 'new': 8}}
+
+# 설정 병합
+merged = config1.merge(config2)  # config2 값이 우선
 ```
 
 ---

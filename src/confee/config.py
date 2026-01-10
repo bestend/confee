@@ -1,17 +1,17 @@
 """Configuration base classes with Pydantic validation and inheritance support."""
 
 from pathlib import Path
-from typing import Any, ClassVar, Dict, FrozenSet, List, Optional, Set, Type, TypeVar, Union
+from typing import Any, ClassVar, Dict, FrozenSet, List, Set, Type, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
 T = TypeVar("T", bound="ConfigBase")
 
 
-def SecretField(
+def SecretField(  # noqa: N802 - Factory function intentionally uses PascalCase like a class
     default: Any = ...,
     *,
-    description: Optional[str] = None,
+    description: str | None = None,
     **kwargs: Any,
 ) -> Any:
     """Create a field that will be masked in output.
@@ -238,7 +238,7 @@ class ConfigBase(BaseModel):
         """Override setattr to enforce frozen state."""
         if hasattr(self, "__dict__") and id(self) in ConfigBase._frozen_instances:
             raise AttributeError(
-                f"Cannot modify frozen configuration. Call .unfreeze() first to make it mutable."
+                "Cannot modify frozen configuration. Call .unfreeze() first to make it mutable."
             )
         super().__setattr__(name, value)
 
@@ -253,11 +253,11 @@ class ConfigBase(BaseModel):
     @classmethod
     def load(
         cls: Type[T],
-        config_file: Optional[Union[str, Path]] = None,
-        cli_args: Optional[List[str]] = None,
+        config_file: str | Path | None = None,
+        cli_args: List[str] | None = None,
         env_prefix: str = "CONFEE_",
-        source_order: Optional[List[str]] = None,
-        help_flags: Optional[List[str]] = None,
+        source_order: List[str] | None = None,
+        help_flags: List[str] | None = None,
         strict: bool = True,
     ) -> T:
         """Load configuration from multiple sources (file, environment, CLI).
@@ -292,7 +292,7 @@ class ConfigBase(BaseModel):
         from .overrides import OverrideHandler
 
         # Convert Path to str for type compatibility
-        config_file_str: Optional[str] = None
+        config_file_str: str | None = None
         if config_file is not None:
             config_file_str = str(config_file)
 
@@ -367,8 +367,8 @@ class ConfigBase(BaseModel):
     @classmethod
     def to_json_schema(
         cls,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
+        title: str | None = None,
+        description: str | None = None,
     ) -> Dict[str, Any]:
         """Generate JSON Schema for this configuration class.
 
@@ -391,8 +391,8 @@ class ConfigBase(BaseModel):
     @classmethod
     def save_schema(
         cls,
-        file_path: Union[str, Path],
-        title: Optional[str] = None,
+        file_path: str | Path,
+        title: str | None = None,
     ) -> None:
         """Save JSON Schema to a file.
 
@@ -451,9 +451,6 @@ class ConfigBase(BaseModel):
         self_dict = self.model_dump()
         other_dict = other.model_dump()
 
-        if override:
-            merged = {**self_dict, **other_dict}
-        else:
-            merged = {**other_dict, **self_dict}
+        merged = {**self_dict, **other_dict} if override else {**other_dict, **self_dict}
 
         return self.__class__(**merged)

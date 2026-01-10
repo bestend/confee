@@ -1,7 +1,7 @@
 """Configuration parser with Hydra-like features and inheritance support."""
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any, Dict, List, Type, TypeVar
 
 from .config import ConfigBase
 from .loaders import ConfigLoader
@@ -26,9 +26,9 @@ class ConfigParser:
 
     def __init__(
         self,
-        config_dir: Union[str, Path],
+        config_dir: str | Path,
         strict: bool = False,
-        source_order: Optional[List[str]] = None,
+        source_order: List[str] | None = None,
     ):
         """Initialize parser with configuration directory.
 

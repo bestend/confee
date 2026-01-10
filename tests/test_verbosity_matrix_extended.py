@@ -47,14 +47,12 @@ def test_errorformatter_validation_verbose_and_compact(monkeypatch):
 
 def test_helpformatter_required_omits_default_and_factory_and_none(monkeypatch):
     """Ensure default segment omitted for required, and present for factory/None values."""
-    from typing import Optional
-
     from pydantic import Field
 
     class CF(ConfigBase):
         req: str
         opt: int = 3
-        maybe: Optional[str] = None
+        maybe: str | None = None
         factory: int = Field(default_factory=lambda: 7)
 
     txt = HelpFormatter.generate_help(CF)

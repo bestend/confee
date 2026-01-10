@@ -30,20 +30,23 @@ Examples:
 """
 
 # Core classes
-from .config import ConfigBase, SecretField
-from .loaders import ConfigLoader, load_config, load_from_file
-from .parser import ConfigParser
-
-# Override handling (kept for backward compatibility)
-from .overrides import OverrideHandler, is_help_command
+# Async support
+from .async_loader import (
+    AsyncConfigLoader,
+    ConfigMerger,
+    ConfigWatcher,
+)
 
 # New modular components
 from .colors import Color, ProgressIndicator
+from .config import ConfigBase, SecretField
 from .error_formatter import ErrorFormatter, FieldErrorDetail
 from .help_formatter import HelpFormatter
+from .loaders import ConfigLoader, load_config, load_from_file
 
-# Schema generation
-from .schema import SchemaGenerator, SchemaValidator
+# Override handling (kept for backward compatibility)
+from .overrides import OverrideHandler, is_help_command
+from .parser import ConfigParser
 
 # Plugin system
 from .plugins import (
@@ -52,12 +55,8 @@ from .plugins import (
     SourcePlugin,
 )
 
-# Async support
-from .async_loader import (
-    AsyncConfigLoader,
-    ConfigMerger,
-    ConfigWatcher,
-)
+# Schema generation
+from .schema import SchemaGenerator, SchemaValidator
 
 __all__ = [
     # Core

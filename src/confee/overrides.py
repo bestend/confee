@@ -2,12 +2,11 @@
 
 import os
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
-
-from .config import ConfigBase
+from typing import Any, Dict, List, Tuple, Type, TypeVar
 
 # Import from new modular components
 from .colors import Color
+from .config import ConfigBase
 from .error_formatter import ErrorFormatter
 from .help_formatter import HelpFormatter
 
@@ -26,7 +25,7 @@ __all__ = [
 
 def is_help_command(
     arg: str,
-    help_flags: Optional[List[str]] = None,
+    help_flags: List[str] | None = None,
 ) -> bool:
     """Check if an argument is a help command.
 
@@ -258,9 +257,9 @@ class OverrideHandler:
     @staticmethod
     def from_cli_and_env(
         config_class: Type[T],
-        cli_overrides: Optional[List[str]] = None,
+        cli_overrides: List[str] | None = None,
         env_prefix: str = "CONFEE_",
-        env_overrides: Optional[Dict[str, str]] = None,
+        env_overrides: Dict[str, str] | None = None,
     ) -> T:
         """Create configuration from CLI arguments and environment variables.
 
@@ -337,11 +336,11 @@ class OverrideHandler:
     @staticmethod
     def parse(
         config_class: Type[T],
-        config_file: Optional[str] = None,
-        cli_args: Optional[List[str]] = None,
+        config_file: str | None = None,
+        cli_args: List[str] | None = None,
         env_prefix: str = "CONFEE_",
-        source_order: Optional[List[str]] = None,
-        help_flags: Optional[List[str]] = None,
+        source_order: List[str] | None = None,
+        help_flags: List[str] | None = None,
         strict: bool = True,
     ) -> T:
         """Parse configuration from multiple sources (file, environment, CLI).

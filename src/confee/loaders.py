@@ -1,9 +1,8 @@
 """Configuration loaders for YAML, JSON, TOML and other formats."""
 
 import json
-import sys
 from pathlib import Path
-from typing import Any, Dict, Optional, Type, TypeVar, Union
+from typing import Any, Dict, Type, TypeVar
 
 import yaml  # type: ignore[import-untyped]
 
@@ -13,28 +12,18 @@ T = TypeVar("T", bound=ConfigBase)
 
 # TOML support (Python 3.11+ built-in, or tomli for older versions)
 _toml_available = False
-tomllib: Optional[Any] = None
+tomllib: Any | None = None
 
-if sys.version_info >= (3, 11):
-    try:
-        import tomllib
+# Python 3.12+ has built-in tomllib
+try:
+    import tomllib
 
-        _toml_available = True
-    except ImportError:
-        # tomllib should be built-in for Python 3.11+, but in rare edge cases
-        # (e.g., custom Python builds), it may be unavailable. Gracefully disable
-        # TOML support so the rest of the library remains functional.
-        pass
-else:
-    try:
-        import tomli as tomllib  # type: ignore
-
-        _toml_available = True
-    except ImportError:
-        # tomli is an optional dependency for Python < 3.11.
-        # TOML support will be disabled if not installed; users can install it
-        # via `pip install confee[all]` or `pip install tomli`.
-        pass
+    _toml_available = True
+except ImportError:
+    # tomllib should be built-in for Python 3.12+, but in rare edge cases
+    # (e.g., custom Python builds), it may be unavailable. Gracefully disable
+    # TOML support so the rest of the library remains functional.
+    pass
 
 
 class ConfigLoader:
@@ -57,7 +46,7 @@ class ConfigLoader:
     SUPPORTED_FORMATS = {".yaml", ".yml", ".json", ".toml"}
 
     @staticmethod
-    def detect_format(file_path: Union[str, Path]) -> str:
+    def detect_format(file_path: str | Path) -> str:
         """Detect configuration file format from extension."""
         path = Path(file_path)
         suffix = path.suffix.lower()
@@ -76,7 +65,7 @@ class ConfigLoader:
         return suffix
 
     @staticmethod
-    def load_yaml(file_path: Union[str, Path]) -> Dict[str, Any]:
+    def load_yaml(file_path: str | Path) -> Dict[str, Any]:
         """Load YAML configuration file."""
         path = Path(file_path)
         if not path.exists():
@@ -91,7 +80,7 @@ class ConfigLoader:
                 raise ValueError(f"Invalid YAML file: {file_path}\nError: {e}")
 
     @staticmethod
-    def load_json(file_path: Union[str, Path]) -> Dict[str, Any]:
+    def load_json(file_path: str | Path) -> Dict[str, Any]:
         """Load JSON configuration file."""
         path = Path(file_path)
         if not path.exists():
@@ -104,7 +93,7 @@ class ConfigLoader:
                 raise ValueError(f"Invalid JSON file: {file_path}\nError: {e}")
 
     @staticmethod
-    def load_toml(file_path: Union[str, Path]) -> Dict[str, Any]:
+    def load_toml(file_path: str | Path) -> Dict[str, Any]:
         """Load TOML configuration file.
 
         Requires Python 3.11+ or the 'tomli' package for older versions.
@@ -139,7 +128,7 @@ class ConfigLoader:
 
     @staticmethod
     def load_pyproject(
-        file_path: Union[str, Path] = "pyproject.toml",
+        file_path: str | Path = "pyproject.toml",
         tool_name: str = "confee",
     ) -> Dict[str, Any]:
         """Load configuration from pyproject.toml [tool.<name>] section.
@@ -166,7 +155,7 @@ class ConfigLoader:
     def load_remote(
         url: str,
         timeout: float = 30.0,
-        headers: Optional[Dict[str, str]] = None,
+        headers: Dict[str, str] | None = None,
     ) -> Dict[str, Any]:
         """Load configuration from a remote URL (synchronous).
 
@@ -208,7 +197,7 @@ class ConfigLoader:
                     return json.loads(content)
 
     @staticmethod
-    def load(file_path: Union[str, Path], strict: bool = True) -> Dict[str, Any]:
+    def load(file_path: str | Path, strict: bool = True) -> Dict[str, Any]:
         """Load configuration file with automatic format detection.
 
         Supports YAML, JSON, TOML and plugin-registered formats.
@@ -238,10 +227,7 @@ class ConfigLoader:
 
                     loader = PluginRegistry.get_loader(path)
                     if loader:
-                        if callable(loader):
-                            data = loader(path)
-                        else:
-                            data = loader.load(path)
+                        data = loader(path) if callable(loader) else loader.load(path)
                     else:
                         return {}
                 except ImportError:
@@ -353,8 +339,8 @@ class ConfigLoader:
         return resolved
 
 
-def load_from_file(
-    file_path: Union[str, Path],
+def load_from_file[T: ConfigBase](
+    file_path: str | Path,
     config_class: Type[T],
     strict: bool = True,
 ) -> T:
@@ -394,8 +380,8 @@ def load_from_file(
             raise e
 
 
-def load_config(
-    *file_paths: Union[str, Path],
+def load_config[T: ConfigBase](
+    *file_paths: str | Path,
     config_class: Type[T],
     strict: bool = True,
 ) -> T:

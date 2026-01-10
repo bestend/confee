@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict, Type
 
 from .config import ConfigBase
 
@@ -25,8 +25,8 @@ class SchemaGenerator:
     @staticmethod
     def generate(
         config_class: Type[ConfigBase],
-        title: Optional[str] = None,
-        description: Optional[str] = None,
+        title: str | None = None,
+        description: str | None = None,
         include_defaults: bool = True,
     ) -> Dict[str, Any]:
         """Generate JSON Schema from a ConfigBase class.
@@ -74,9 +74,9 @@ class SchemaGenerator:
     @staticmethod
     def save(
         config_class: Type[ConfigBase],
-        file_path: Union[str, Path],
-        title: Optional[str] = None,
-        description: Optional[str] = None,
+        file_path: str | Path,
+        title: str | None = None,
+        description: str | None = None,
         indent: int = 2,
     ) -> None:
         """Save JSON Schema to a file.

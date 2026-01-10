@@ -1,5 +1,4 @@
 import re
-from typing import Optional
 
 import pytest
 from pydantic import Field
@@ -12,11 +11,12 @@ class HelpSample(ConfigBase):
     name: str  # required — should NOT show [default: ...]
     debug: bool = False
     workers: int = 4
-    note: Optional[str] = None  # should show [default: None]
+    note: str | None = None  # should show [default: None]
 
 
 class NestedSubConfig(ConfigBase):
     """Nested configuration for testing."""
+
     host: str = "localhost"
     port: int = 5432
     timeout: int = 30
@@ -24,6 +24,7 @@ class NestedSubConfig(ConfigBase):
 
 class NestedConfig(ConfigBase):
     """Configuration with nested ConfigBase fields."""
+
     name: str = Field(default="app", repr=True)
     debug: bool = False
     database: NestedSubConfig = NestedSubConfig()
@@ -31,18 +32,21 @@ class NestedConfig(ConfigBase):
 
 class DeepNestedInnerConfig(ConfigBase):
     """Innermost configuration for deep nesting test."""
+
     value: str = "inner"
     count: int = 10
 
 
 class DeepNestedMiddleConfig(ConfigBase):
     """Middle level configuration for deep nesting test."""
+
     name: str = "middle"
     inner: DeepNestedInnerConfig = DeepNestedInnerConfig()
 
 
 class DeepNestedConfig(ConfigBase):
     """Configuration with multiple levels of nesting."""
+
     app_name: str = "deep-app"
     middle: DeepNestedMiddleConfig = DeepNestedMiddleConfig()
 
@@ -98,7 +102,9 @@ class TestNestedConfigHelp:
         # Ensure the parent field itself is NOT shown
         # (we only show the leaf fields, not the ConfigBase parent)
         lines = text.splitlines()
-        database_only_lines = [l for l in lines if "--database " in l and "--database." not in l]
+        database_only_lines = [
+            line for line in lines if "--database " in line and "--database." not in line
+        ]
         assert len(database_only_lines) == 0, "Parent ConfigBase field should not be shown"
 
     def test_nested_field_defaults(self):
@@ -157,5 +163,3 @@ class TestErrorFormatter:
         err = RuntimeError("boom")
         msg = ErrorFormatter.format_validation_error(err, style="compact")
         assert msg == "Error: boom"
-
-

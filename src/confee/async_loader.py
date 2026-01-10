@@ -5,8 +5,9 @@ for use in async/await contexts and for loading remote configurations.
 """
 
 import asyncio
+import contextlib
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
+from typing import Any, Awaitable, Callable, Dict, List
 
 
 class AsyncConfigLoader:
@@ -25,7 +26,7 @@ class AsyncConfigLoader:
 
     @staticmethod
     async def load(
-        file_path: Union[str, Path],
+        file_path: str | Path,
         strict: bool = True,
     ) -> Dict[str, Any]:
         """Load configuration file asynchronously.
@@ -48,7 +49,7 @@ class AsyncConfigLoader:
 
     @staticmethod
     async def load_multiple(
-        file_paths: List[Union[str, Path]],
+        file_paths: List[str | Path],
         strict: bool = True,
     ) -> List[Dict[str, Any]]:
         """Load multiple configuration files in parallel.
@@ -74,7 +75,7 @@ class AsyncConfigLoader:
     async def load_remote(
         url: str,
         timeout: float = 30.0,
-        headers: Optional[Dict[str, str]] = None,
+        headers: Dict[str, str] | None = None,
     ) -> Dict[str, Any]:
         """Load configuration from a remote URL.
 
@@ -132,7 +133,7 @@ class AsyncConfigLoader:
 
     @staticmethod
     async def watch(
-        file_path: Union[str, Path],
+        file_path: str | Path,
         callback: "AsyncWatchCallback",
         interval: float = 1.0,
     ) -> "ConfigWatcher":
@@ -175,7 +176,7 @@ class ConfigWatcher:
 
     def __init__(
         self,
-        file_path: Union[str, Path],
+        file_path: str | Path,
         callback: Any,  # AsyncWatchCallback
         interval: float = 1.0,
     ):
@@ -189,10 +190,10 @@ class ConfigWatcher:
         self.file_path = Path(file_path)
         self.callback = callback
         self.interval = interval
-        self._task: Optional[asyncio.Task] = None
+        self._task: asyncio.Task | None = None
         self._running = False
-        self._last_mtime: Optional[float] = None
-        self._last_config: Optional[Dict[str, Any]] = None
+        self._last_mtime: float | None = None
+        self._last_config: Dict[str, Any] | None = None
 
     async def start(self) -> None:
         """Start watching for changes."""
@@ -213,11 +214,9 @@ class ConfigWatcher:
         self._running = False
         if self._task:
             self._task.cancel()
-            try:
+            # Task cancellation during shutdown is expected and can be safely ignored.
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._task
-            except asyncio.CancelledError:
-                # Task cancellation during shutdown is expected and can be safely ignored.
-                pass
             self._task = None
 
     async def _watch_loop(self) -> None:
@@ -302,7 +301,7 @@ class ConfigMerger:
 
     @staticmethod
     async def merge_files(
-        file_paths: List[Union[str, Path]],
+        file_paths: List[str | Path],
         merge_lists: bool = False,
     ) -> Dict[str, Any]:
         """Load and merge multiple configuration files.

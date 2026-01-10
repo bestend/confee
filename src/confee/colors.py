@@ -1,7 +1,6 @@
 """ANSI color codes and terminal styling utilities."""
 
 import os
-from typing import Optional
 
 
 class Color:
@@ -90,7 +89,7 @@ class Color:
 
     @classmethod
     def styled(cls, text: str, *styles: str) -> str:
-        """Apply styles to text if colors are enabled.
+        r"""Apply styles to text if colors are enabled.
 
         Args:
             text: Text to style
@@ -101,7 +100,7 @@ class Color:
 
         Examples:
             >>> Color.styled("Error", Color.RED, Color.BOLD)
-            '\\033[31m\\033[1mError\\033[0m'
+            '\033[31m\033[1mError\033[0m'
         """
         if not cls._enabled or not styles:
             return text
@@ -169,13 +168,11 @@ class ProgressIndicator:
 
     def __exit__(
         self,
-        exc_type: Optional[type],
-        exc_val: Optional[Exception],
-        exc_tb: Optional[object],
+        exc_type: type | None,
+        exc_val: Exception | None,
+        exc_tb: object | None,
     ) -> None:
         """End progress indicator."""
-        import sys
-
         if exc_type is not None:
             print(Color.error("failed"))
         else:

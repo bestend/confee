@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [0.3.0] - 2026-01-10
 
 ### Added
-- **🗂️ TOML Support** — Native TOML file loading with `tomllib` (Python 3.11+) / `tomli` (Python 3.9-3.10)
+- **🗂️ TOML Support** — Native TOML file loading with `tomllib` (Python 3.12+ has built-in support)
   - `ConfigLoader.load_toml()` for TOML files
   - `ConfigLoader.load_pyproject()` for pyproject.toml [tool.xxx] sections
 - **🔌 Plugin System** — Extensible loader architecture for custom formats
@@ -110,4 +110,3 @@ All notable changes to this project will be documented in this file.
 This changelog follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 Versions follow [Semantic Versioning](https://semver.org/) (Major.Minor.Patch).
-

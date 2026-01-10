@@ -1,9 +1,12 @@
 """Help text generation for configuration classes."""
 
 import sys
-from typing import Any, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, List, Tuple, Type
 
 from .colors import Color
+
+if TYPE_CHECKING:
+    from .config import ConfigBase
 
 
 class HelpFormatter:
@@ -64,7 +67,7 @@ class HelpFormatter:
         return False
 
     @staticmethod
-    def _get_config_base_type(field_type: Any) -> Optional[Type["ConfigBase"]]:  # type: ignore
+    def _get_config_base_type(field_type: Any) -> Type["ConfigBase"] | None:  # type: ignore
         """Extract the ConfigBase type from a field annotation.
 
         Args:
@@ -117,12 +120,16 @@ class HelpFormatter:
         # Detect Pydantic's undefined sentinel
         _PUD: Any
         try:
-            from pydantic_core import PydanticUndefined as _PUD
+            from pydantic_core import PydanticUndefined
+
+            _PUD = PydanticUndefined  # type: ignore[assignment]
         except Exception:
             try:
-                from pydantic import PydanticUndefined as _PUD
+                from pydantic import PydanticUndefined  # type: ignore[no-redef]
+
+                _PUD = PydanticUndefined  # type: ignore[assignment]
             except Exception:
-                _PUD = object()
+                _PUD = object()  # type: ignore[assignment]
 
         # 1) Prioritize default_factory
         if getattr(field, "default_factory", None) is not None:
@@ -153,7 +160,7 @@ class HelpFormatter:
         config_class: Type["ConfigBase"],  # type: ignore
         prefix: str = "",
         max_depth: int = 5,
-        visited: Optional[set] = None,
+        visited: set | None = None,
     ) -> List[Tuple[str, str, str, str]]:
         """Recursively collect all fields including nested ConfigBase fields.
 
@@ -175,7 +182,7 @@ class HelpFormatter:
         visited = visited.copy()
         visited.add(config_class)
 
-        field_info = []
+        field_info: List[Tuple[str, str, str, str]] = []
 
         if not hasattr(config_class, "model_fields"):
             return field_info
@@ -195,9 +202,10 @@ class HelpFormatter:
                 )
                 field_info.extend(nested_fields)
             else:
-                type_str = (
-                    field_type.__name__ if hasattr(field_type, "__name__") else str(field_type)
-                )
+                if field_type is not None and hasattr(field_type, "__name__"):
+                    type_str = field_type.__name__  # type: ignore[union-attr]
+                else:
+                    type_str = str(field_type)
 
                 description_text = field.description or field_name.replace("_", " ")
                 if prefix:
@@ -212,8 +220,8 @@ class HelpFormatter:
     @staticmethod
     def generate_help(
         config_class: Type["ConfigBase"],  # type: ignore
-        program_name: Optional[str] = None,
-        description: Optional[str] = None,
+        program_name: str | None = None,
+        description: str | None = None,
     ) -> str:
         """Generate help text for a configuration class with colors.
 
@@ -267,8 +275,8 @@ class HelpFormatter:
     @staticmethod
     def print_help(
         config_class: Type["ConfigBase"],  # type: ignore
-        program_name: Optional[str] = None,
-        description: Optional[str] = None,
+        program_name: str | None = None,
+        description: str | None = None,
         exit_code: int = 0,
     ) -> None:
         """Print help message and optionally exit.
@@ -287,7 +295,7 @@ class HelpFormatter:
     @staticmethod
     def generate_markdown_docs(
         config_class: Type["ConfigBase"],  # type: ignore
-        title: Optional[str] = None,
+        title: str | None = None,
     ) -> str:
         """Generate Markdown documentation for a configuration class.
 

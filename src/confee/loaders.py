@@ -187,7 +187,7 @@ class ConfigLoader:
         import urllib.request
 
         req = urllib.request.Request(url, headers=headers or {})
-        with urllib.request.urlopen(req, timeout=timeout) as response:
+        with urllib.request.urlopen(req, timeout=timeout) as response:  # nosec B310
             content = response.read().decode("utf-8")
             content_type = response.headers.get("Content-Type", "")
 

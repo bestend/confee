@@ -9,10 +9,10 @@ This module provides a registry-based plugin architecture for:
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List
 
 # Type aliases
-LoaderFunction = Callable[[Union[str, Path]], Dict[str, Any]]
+LoaderFunction = Callable[[str | Path], Dict[str, Any]]
 ValidatorFunction = Callable[[Dict[str, Any]], Dict[str, Any]]
 HookFunction = Callable[[Dict[str, Any]], Dict[str, Any]]
 
@@ -264,7 +264,7 @@ class PluginRegistry:
         return decorator
 
     @classmethod
-    def get_loader(cls, file_path: Path) -> Optional[Union[LoaderPlugin, LoaderFunction]]:
+    def get_loader(cls, file_path: Path) -> LoaderPlugin | LoaderFunction | None:
         """Get a loader for the given file path.
 
         Args:
@@ -286,7 +286,7 @@ class PluginRegistry:
         return None
 
     @classmethod
-    def get_source(cls, uri: str) -> Optional[SourcePlugin]:
+    def get_source(cls, uri: str) -> SourcePlugin | None:
         """Get a source handler for the given URI.
 
         Args:
@@ -381,28 +381,15 @@ def register_builtin_plugins() -> None:
 
     This is called automatically when the module is imported.
     """
-    # TOML support (Python 3.11+ or tomli)
+    # TOML support (Python 3.12+)
     try:
-        import sys
+        import tomllib
 
-        if sys.version_info >= (3, 11):
-            import tomllib
-
-            @PluginRegistry.loader(".toml")
-            def _load_toml(file_path: Path) -> Dict[str, Any]:
-                with open(file_path, "rb") as f:
-                    return tomllib.load(f)
-        else:
-            try:
-                import tomli
-
-                @PluginRegistry.loader(".toml")
-                def _load_toml_backport(file_path: Path) -> Dict[str, Any]:
-                    with open(file_path, "rb") as f:
-                        return tomli.load(f)
-
-            except ImportError:
-                pass  # TOML not available
+        @PluginRegistry.loader(".toml")
+        def _load_toml(file_path: str | Path) -> Dict[str, Any]:
+            path = Path(file_path) if isinstance(file_path, str) else file_path
+            with open(path, "rb") as f:
+                return tomllib.load(f)
     except Exception as e:
         # Log TOML plugin registration errors instead of silently suppressing.
         import logging

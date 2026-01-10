@@ -8,7 +8,7 @@
 
 Hydra 스타일 설정 + Pydantic 타입 안전성 + 자동 도움말 생성
 
-[![Python Version](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://github.com/bestend/confee/actions/workflows/tests.yml/badge.svg)](https://github.com/bestend/confee/actions/workflows/tests.yml)
 
@@ -42,7 +42,6 @@ Hydra 스타일 설정 + Pydantic 타입 안전성 + 자동 도움말 생성
 pip install confee
 
 # 선택적 기능
-pip install confee[toml]    # TOML 지원 (Python < 3.11)
 pip install confee[remote]  # 비동기 원격 로딩
 pip install confee[all]     # 모든 기능
 ```
@@ -196,7 +195,7 @@ env:
 
 ---
 
-## � 라이선스
+## 📄 라이선스
 
 MIT License © 2025 — 자세한 내용은 [LICENSE](./LICENSE) 참조
 

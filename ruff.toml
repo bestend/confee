@@ -1,7 +1,7 @@
 # Ruff configuration
 # https://docs.astral.sh/ruff/configuration/
 
-target-version = "py39"
+target-version = "py312"
 line-length = 100
 
 [lint]
@@ -49,4 +49,3 @@ convention = "google"
 quote-style = "double"
 indent-style = "space"
 line-ending = "auto"
-

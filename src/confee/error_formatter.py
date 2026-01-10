@@ -1,7 +1,9 @@
 """User-friendly error formatting for validation errors."""
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
+
+from pydantic_core import ErrorDetails
 
 from .colors import Color
 
@@ -48,7 +50,7 @@ class ErrorFormatter:
         return f"{Color.RED}Error: {error_str}{Color.RESET}"
 
     @staticmethod
-    def _format_pydantic_errors(errors: List[Dict[str, Any]], style: str) -> str:
+    def _format_pydantic_errors(errors: List[ErrorDetails], style: str) -> str:
         """Format Pydantic V2 validation errors.
 
         Args:
@@ -63,7 +65,7 @@ class ErrorFormatter:
         return ErrorFormatter._format_verbose_errors(errors)
 
     @staticmethod
-    def _format_compact_errors(errors: List[Dict[str, Any]]) -> str:
+    def _format_compact_errors(errors: List[ErrorDetails]) -> str:
         """Format errors in compact single-line style."""
         if not errors:
             return "Config error: validation failed"
@@ -79,7 +81,7 @@ class ErrorFormatter:
         return f"Config error: field '{field}' - {msg}"
 
     @staticmethod
-    def _format_verbose_errors(errors: List[Dict[str, Any]]) -> str:
+    def _format_verbose_errors(errors: List[ErrorDetails]) -> str:
         """Format errors in verbose multi-line style with colors."""
         lines = []
         lines.append(f"{Color.BOLD}{Color.RED}❌ Configuration Validation Error{Color.RESET}")
@@ -102,7 +104,7 @@ class ErrorFormatter:
         return "\n".join(lines)
 
     @staticmethod
-    def _format_single_error(idx: int, error_detail: Dict[str, Any]) -> List[str]:
+    def _format_single_error(idx: int, error_detail: ErrorDetails) -> List[str]:
         """Format a single error detail."""
         lines = []
 
@@ -178,8 +180,8 @@ class FieldErrorDetail:
         field: str,
         error_type: str,
         message: str,
-        input_value: Optional[Any] = None,
-        context: Optional[Dict[str, Any]] = None,
+        input_value: Any | None = None,
+        context: Dict[str, Any] | None = None,
     ):
         """Initialize error detail.
 

@@ -8,7 +8,7 @@
 
 Hydra-style Configuration + Pydantic Type Safety + Auto Help Generation
 
-[![Python Version](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://github.com/bestend/confee/actions/workflows/tests.yml/badge.svg)](https://github.com/bestend/confee/actions/workflows/tests.yml)
 
@@ -42,7 +42,6 @@ Hydra-style Configuration + Pydantic Type Safety + Auto Help Generation
 pip install confee
 
 # Optional features
-pip install confee[toml]    # TOML support (Python < 3.11)
 pip install confee[remote]  # Async remote loading
 pip install confee[all]     # All features
 ```
@@ -196,7 +195,7 @@ env:
 
 ---
 
-## � License
+## 📄 License
 
 MIT License © 2025 — See [LICENSE](./LICENSE) for details.
 

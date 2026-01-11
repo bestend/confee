@@ -70,11 +70,32 @@ python app.py debug=true workers=8
 CONFEE_WORKERS=16 python app.py
 ```
 
-**See [examples/](./examples/) for:**
-- `01_basic_usage.py` - Type-safe config, freezing
-- `02_cli_overrides.py` - CLI args & env vars
-- `03_secrets.py` - SecretField & masking
-- `04_fastapi.py` - FastAPI integration
+### Auto-Generated Help
+
+Run with `--help` to see available options:
+
+```bash
+$ python app.py --help
+```
+
+```
+Usage: app.py [OPTIONS]
+
+Options:
+  --name     str   name
+  --debug    bool  debug [default: False]
+  --workers  int   workers [default: 4]
+
+Override format:
+  key=value              Set a simple value
+  nested.key=value       Set a nested value
+  @file:path/to/file     Read value from file
+  true/false/yes/no/on/off for boolean values
+
+Examples:
+  app.py debug=true workers=8
+  app.py --help
+```
 
 ---
 
@@ -112,6 +133,12 @@ except AttributeError:
 ---
 
 ## 📚 Documentation
+
+**See [examples/](./examples/) for more:**
+- `01_basic_usage.py` - Type-safe config, freezing
+- `02_cli_overrides.py` - CLI args & env vars
+- `03_secrets.py` - SecretField & masking
+- `04_fastapi.py` - FastAPI integration
 
 For advanced features, see [ADVANCED.md](./ADVANCED.md):
 - Config Freezing & Immutability

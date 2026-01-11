@@ -70,11 +70,32 @@ python app.py debug=true workers=8
 CONFEE_WORKERS=16 python app.py
 ```
 
-**예제는 [examples/](./examples/) 참조:**
-- `01_basic_usage.py` - 타입 안전 설정, 동결
-- `02_cli_overrides.py` - CLI 인자 & 환경 변수
-- `03_secrets.py` - SecretField & 마스킹
-- `04_fastapi.py` - FastAPI 통합
+### 자동 생성 도움말
+
+`--help`로 실행하면 사용 가능한 옵션을 확인할 수 있습니다:
+
+```bash
+$ python app.py --help
+```
+
+```
+Usage: app.py [OPTIONS]
+
+Options:
+  --name     str   name
+  --debug    bool  debug [default: False]
+  --workers  int   workers [default: 4]
+
+Override format:
+  key=value              간단한 값 설정
+  nested.key=value       중첩된 값 설정
+  @file:path/to/file     파일에서 값 읽기
+  true/false/yes/no/on/off for boolean values
+
+Examples:
+  app.py debug=true workers=8
+  app.py --help
+```
 
 ---
 
@@ -112,6 +133,12 @@ except AttributeError:
 ---
 
 ## 📚 문서
+
+**더 많은 예제는 [examples/](./examples/) 참조:**
+- `01_basic_usage.py` - 타입 안전 설정, 동결
+- `02_cli_overrides.py` - CLI 인자 & 환경 변수
+- `03_secrets.py` - SecretField & 마스킹
+- `04_fastapi.py` - FastAPI 통합
 
 고급 기능은 [ADVANCED.md](./ADVANCED.md) 참조 (영문):
 - Config Freezing & Immutability

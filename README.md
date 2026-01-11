@@ -43,6 +43,13 @@ pip install confee
 
 ## 🚀 Quick Start
 
+```yaml
+# config.yaml
+name: my-app
+debug: false
+workers: 4
+```
+
 ```python
 from confee import ConfigBase
 
@@ -51,8 +58,13 @@ class AppConfig(ConfigBase):
     debug: bool = False
     workers: int = 4
 
-config = AppConfig(name="my-app", debug=True, workers=8)
-print(f"App: {config.name}, Debug: {config.debug}")
+# Load from file
+config = AppConfig.load(config_file="config.yaml")
+print(f"App: {config.name}, Workers: {config.workers}")
+
+# Override from CLI or environment
+# python app.py debug=true workers=8
+# CONFEE_WORKERS=16 python app.py
 ```
 
 **See [examples/](./examples/) for:**

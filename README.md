@@ -78,24 +78,10 @@ class AppConfig(ConfigBase):
 # Override: python app.py database.host=prod.db
 ```
 
-### File References & Secret Masking
-
-```yaml
-api_key: "@file:secrets/api_key.txt"
-```
+### Config Freezing
 
 ```python
-config.to_safe_dict()  # {'api_key': '***MASKED***', ...}
-```
-
-### Config Freezing & Custom Prefix
-
-```python
-config = AppConfig.load(
-    config_file="config.yaml",
-    env_prefix="MYAPP_",
-    strict=False
-)
+config = AppConfig.load(config_file="config.yaml")
 config.freeze()  # Immutable
 ```
 

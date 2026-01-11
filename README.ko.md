@@ -78,24 +78,10 @@ class AppConfig(ConfigBase):
 # 오버라이드: python app.py database.host=prod.db
 ```
 
-### 파일 참조 & 시크릿 마스킹
-
-```yaml
-api_key: "@file:secrets/api_key.txt"
-```
+### 설정 동결
 
 ```python
-config.to_safe_dict()  # {'api_key': '***MASKED***', ...}
-```
-
-### 설정 동결 & 커스텀 접두사
-
-```python
-config = AppConfig.load(
-    config_file="config.yaml",
-    env_prefix="MYAPP_",
-    strict=False
-)
+config = AppConfig.load(config_file="config.yaml")
 config.freeze()  # 불변
 ```
 

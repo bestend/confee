@@ -136,3 +136,6 @@ dmypy.json
 config.local.yaml
 config.local.json
 
+# AI Assistant
+.sisyphus/
+

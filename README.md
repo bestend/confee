@@ -18,7 +18,7 @@ Hydra-style Configuration + Pydantic Type Safety + Auto Help Generation
 
 ## ☕️ Overview
 
-**confee** makes configuration management in Python simple, type-safe, and intuitive. Combine Hydra-style config files, Pydantic validation, environment variables, and CLI arguments seamlessly.
+**confee** makes configuration management simple, type-safe, and intuitive. Combine config files, Pydantic validation, environment variables, and CLI arguments seamlessly.
 
 ---
 
@@ -26,13 +26,10 @@ Hydra-style Configuration + Pydantic Type Safety + Auto Help Generation
 
 - **🎯 Type-Safe** — Pydantic V2 validation & IDE autocomplete
 - **📋 Multi-Format** — YAML, JSON, TOML auto-detection
-- **🔄 Override System** — CLI args & environment variables
+- **🔄 Override System** — CLI args & environment variables with priority control
 - **🔐 Secret Masking** — `SecretField()` for sensitive data
-- **🧊 Config Freezing** — Runtime immutability
-- **📐 JSON Schema** — Export & validate schemas
-- **⚡ Async Loading** — Non-blocking I/O with file watching
-- **🔌 Plugin System** — Custom format loaders
-- **💬 Auto Help** — `--help` flag support
+- **🧊 Immutability** — Runtime config freezing
+- **📐 Extensible** — Plugin system, JSON Schema, async loading
 
 ---
 
@@ -40,10 +37,6 @@ Hydra-style Configuration + Pydantic Type Safety + Auto Help Generation
 
 ```bash
 pip install confee
-
-# Optional features
-pip install confee[remote]  # Async remote loading
-pip install confee[all]     # All features
 ```
 
 ---
@@ -57,16 +50,15 @@ class AppConfig(ConfigBase):
     name: str
     debug: bool = False
     workers: int = 4
-    api_key: str = SecretField(default="")  # Masked in output
+    api_key: str = SecretField(default="")
 
 config = AppConfig.load(config_file="config.yaml")
-print(config.name)  # Type-safe access with IDE support
+print(config.name)  # Type-safe access
 ```
 
 ```yaml
 # config.yaml
 name: my-app
-debug: false
 workers: 8
 api_key: secret123
 ```
@@ -77,12 +69,11 @@ python app.py name=production debug=true
 
 # Override via environment
 export CONFEE_NAME=production
-export CONFEE_DEBUG=true
 ```
 
 ---
 
-## 🎯 Advanced Usage
+## 💡 Common Patterns
 
 ### Nested Configuration
 
@@ -92,113 +83,46 @@ class DatabaseConfig(ConfigBase):
     port: int = 5432
 
 class AppConfig(ConfigBase):
-    name: str
     database: DatabaseConfig
 
-# Override nested fields: python app.py database.host=prod.db
+# Override: python app.py database.host=prod.db
 ```
 
-### File References
+### File References & Secret Masking
 
 ```yaml
 api_key: "@file:secrets/api_key.txt"
-database: "@config:configs/database.yaml"
 ```
-
-### Secret Masking
 
 ```python
 config.to_safe_dict()  # {'api_key': '***MASKED***', ...}
-config.print(safe=True)  # Pretty print with masked secrets
 ```
 
-### Config Freezing
-
-```python
-config.freeze()
-config.name = "new"  # Raises AttributeError
-
-# Create mutable copy
-unfrozen = config.copy_unfrozen()
-```
-
-### JSON Schema
-
-```python
-schema = AppConfig.to_json_schema()
-AppConfig.save_schema("config.schema.json")
-```
-
-### Remote Config
-
-```python
-# Sync (stdlib urllib)
-data = ConfigLoader.load_remote("https://example.com/config.yaml")
-
-# Async (requires aiohttp)
-data = await AsyncConfigLoader.load_remote("https://example.com/config.yaml")
-```
-
-### Plugin System
-
-```python
-from confee import PluginRegistry
-
-@PluginRegistry.loader(".ini")
-def load_ini(path: str) -> dict:
-    import configparser
-    parser = configparser.ConfigParser()
-    parser.read(path)
-    return {s: dict(parser[s]) for s in parser.sections()}
-```
-
-### Config Diff & Merge
-
-```python
-diff = config1.diff(config2)  # {'name': ('app1', 'app2')}
-merged = config1.merge(config2)  # config2 takes precedence
-```
-
----
-
-## ⚙️ Configuration Options
+### Config Freezing & Custom Prefix
 
 ```python
 config = AppConfig.load(
     config_file="config.yaml",
-    env_prefix="MYAPP_",  # Custom env prefix
-    source_order=["cli", "env", "file"],  # Priority order
-    strict=False,  # Allow unknown fields
+    env_prefix="MYAPP_",
+    strict=False
 )
+config.freeze()  # Immutable
 ```
 
 ---
 
-## 🔄 Integration
+## 📚 Documentation
 
-### FastAPI
-
-```python
-config = AppConfig.load(config_file="config.yaml", source_order=["env", "file"])
-app = FastAPI(title=config.name, debug=config.debug)
-```
-
-### Kubernetes
-
-```yaml
-env:
-  - name: CONFEE_DEBUG
-    value: "false"
-  - name: CONFEE_WORKERS
-    value: "16"
-```
+For advanced features, see [ADVANCED.md](./ADVANCED.md):
+- Config Freezing & Immutability
+- JSON Schema Generation
+- Remote Config Loading (HTTP/HTTPS)
+- Plugin System (Custom Loaders, Validators, Hooks)
+- Config Diff & Merge
+- Integration Examples (FastAPI, Django, Kubernetes, AWS Lambda)
 
 ---
 
 ## 📄 License
 
 MIT License © 2025 — See [LICENSE](./LICENSE) for details.
-
----
-
-**Enjoy ☕️ configuration management!**

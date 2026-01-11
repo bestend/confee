@@ -58,13 +58,16 @@ class AppConfig(ConfigBase):
     debug: bool = False
     workers: int = 4
 
-# 파일에서 로드
-config = AppConfig.load(config_file="config.yaml")
+config = AppConfig.load("config.yaml")
 print(f"App: {config.name}, Workers: {config.workers}")
+```
 
-# CLI나 환경변수로 오버라이드
-# python app.py debug=true workers=8
-# CONFEE_WORKERS=16 python app.py
+```bash
+# CLI 인자로 오버라이드
+python app.py debug=true workers=8
+
+# 환경변수로 오버라이드
+CONFEE_WORKERS=16 python app.py
 ```
 
 **예제는 [examples/](./examples/) 참조:**
@@ -87,14 +90,23 @@ class DatabaseConfig(ConfigBase):
 class AppConfig(ConfigBase):
     database: DatabaseConfig
 
-# 오버라이드: python app.py database.host=prod.db
+config = AppConfig.load("config.yaml")
+```
+
+```bash
+python app.py database.host=prod.db database.port=3306
 ```
 
 ### 설정 동결
 
 ```python
-config = AppConfig.load(config_file="config.yaml")
-config.freeze()  # 불변
+config = AppConfig.load("config.yaml")
+config.freeze()
+
+try:
+    config.name = "changed"
+except AttributeError:
+    print("Config is frozen!")
 ```
 
 ---

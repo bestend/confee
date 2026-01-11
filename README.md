@@ -58,13 +58,16 @@ class AppConfig(ConfigBase):
     debug: bool = False
     workers: int = 4
 
-# Load from file
-config = AppConfig.load(config_file="config.yaml")
+config = AppConfig.load("config.yaml")
 print(f"App: {config.name}, Workers: {config.workers}")
+```
 
-# Override from CLI or environment
-# python app.py debug=true workers=8
-# CONFEE_WORKERS=16 python app.py
+```bash
+# Override with CLI args
+python app.py debug=true workers=8
+
+# Override with environment variables
+CONFEE_WORKERS=16 python app.py
 ```
 
 **See [examples/](./examples/) for:**
@@ -87,14 +90,23 @@ class DatabaseConfig(ConfigBase):
 class AppConfig(ConfigBase):
     database: DatabaseConfig
 
-# Override: python app.py database.host=prod.db
+config = AppConfig.load("config.yaml")
+```
+
+```bash
+python app.py database.host=prod.db database.port=3306
 ```
 
 ### Config Freezing
 
 ```python
-config = AppConfig.load(config_file="config.yaml")
-config.freeze()  # Immutable
+config = AppConfig.load("config.yaml")
+config.freeze()
+
+try:
+    config.name = "changed"
+except AttributeError:
+    print("Config is frozen!")
 ```
 
 ---

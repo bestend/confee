@@ -44,32 +44,22 @@ pip install confee
 ## 🚀 빠른 시작
 
 ```python
-from confee import ConfigBase, SecretField
+from confee import ConfigBase
 
 class AppConfig(ConfigBase):
     name: str
     debug: bool = False
     workers: int = 4
-    api_key: str = SecretField(default="")
 
-config = AppConfig.load(config_file="config.yaml")
-print(config.name)  # 타입 안전한 접근
+config = AppConfig(name="my-app", debug=True, workers=8)
+print(f"App: {config.name}, Debug: {config.debug}")
 ```
 
-```yaml
-# config.yaml
-name: my-app
-workers: 8
-api_key: secret123
-```
-
-```bash
-# CLI로 오버라이드
-python app.py name=production debug=true
-
-# 환경 변수로 오버라이드
-export CONFEE_NAME=production
-```
+**예제는 [examples/](./examples/) 참조:**
+- `01_basic_usage.py` - 타입 안전 설정, 동결
+- `02_cli_overrides.py` - CLI 인자 & 환경 변수
+- `03_secrets.py` - SecretField & 마스킹
+- `04_fastapi.py` - FastAPI 통합
 
 ---
 

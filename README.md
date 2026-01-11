@@ -44,32 +44,22 @@ pip install confee
 ## 🚀 Quick Start
 
 ```python
-from confee import ConfigBase, SecretField
+from confee import ConfigBase
 
 class AppConfig(ConfigBase):
     name: str
     debug: bool = False
     workers: int = 4
-    api_key: str = SecretField(default="")
 
-config = AppConfig.load(config_file="config.yaml")
-print(config.name)  # Type-safe access
+config = AppConfig(name="my-app", debug=True, workers=8)
+print(f"App: {config.name}, Debug: {config.debug}")
 ```
 
-```yaml
-# config.yaml
-name: my-app
-workers: 8
-api_key: secret123
-```
-
-```bash
-# Override via CLI
-python app.py name=production debug=true
-
-# Override via environment
-export CONFEE_NAME=production
-```
+**See [examples/](./examples/) for:**
+- `01_basic_usage.py` - Type-safe config, freezing
+- `02_cli_overrides.py` - CLI args & env vars
+- `03_secrets.py` - SecretField & masking
+- `04_fastapi.py` - FastAPI integration
 
 ---
 

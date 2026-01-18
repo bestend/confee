@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.4] - 2026-01-18
+
+### Added
+- **🔧 Nested Environment Variable Support** — Use double underscore (`__`) as separator for nested config keys in environment variables
+  - `MYAPP_DATABASE__HOST` → `database.host`
+  - `MYAPP_KEYCLOAK__CLIENT_SECRET` → `keycloak.client_secret`
+  - Shell environment variables don't allow `.` in names, so `__` provides a workaround
+
+---
+
 ## [0.3.0] - 2026-01-10
 
 ### Added

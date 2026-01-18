@@ -68,6 +68,9 @@ python app.py debug=true workers=8
 
 # 환경변수로 오버라이드
 CONFEE_WORKERS=16 python app.py
+
+# 중첩 설정은 __ (이중 언더스코어) 사용
+CONFEE_DATABASE__HOST=prod.db CONFEE_DATABASE__PORT=5432 python app.py
 ```
 
 ### 자동 생성 도움말

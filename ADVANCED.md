@@ -375,6 +375,35 @@ config = AppConfig.load(
 # Now use: MYAPP_NAME, MYAPP_DEBUG, etc.
 ```
 
+### Nested Config via Environment Variables
+
+Since shell environment variable names cannot contain `.`, use double underscore (`__`) as a separator for nested config keys:
+
+```bash
+# Single underscore = part of the key name
+export MYAPP_SECRET_KEY=abc123        # → secret_key
+
+# Double underscore = nested path separator  
+export MYAPP_DATABASE__HOST=localhost  # → database.host
+export MYAPP_DATABASE__PORT=5432       # → database.port
+export MYAPP_AUTH__JWT__SECRET=xyz     # → auth.jwt.secret
+```
+
+```python
+class DatabaseConfig(ConfigBase):
+    host: str = "localhost"
+    port: int = 5432
+
+class AppConfig(ConfigBase):
+    secret_key: str
+    database: DatabaseConfig
+
+# Environment: MYAPP_DATABASE__HOST=prod.db MYAPP_DATABASE__PORT=3306
+config = AppConfig.load(env_prefix="MYAPP_")
+print(config.database.host)  # "prod.db"
+print(config.database.port)  # 3306
+```
+
 ### Strict Mode
 
 ```python

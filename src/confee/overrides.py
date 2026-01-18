@@ -126,6 +126,9 @@ class OverrideHandler:
         for key, value in os.environ.items():
             if key.startswith(prefix):
                 config_key = key[len(prefix) :].lower()
+                # Convert double underscore to dot for nested config support
+                # e.g., MYAPP_DATABASE__HOST -> database.host
+                config_key = config_key.replace("__", ".")
                 env_overrides[config_key] = value
 
         return env_overrides

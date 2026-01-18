@@ -68,6 +68,9 @@ python app.py debug=true workers=8
 
 # Override with environment variables
 CONFEE_WORKERS=16 python app.py
+
+# Nested config via environment (use __ for nested keys)
+CONFEE_DATABASE__HOST=prod.db CONFEE_DATABASE__PORT=5432 python app.py
 ```
 
 ### Auto-Generated Help

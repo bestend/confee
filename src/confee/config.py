@@ -291,7 +291,7 @@ class ConfigBase(BaseModel):
             config_file: Path to configuration file (YAML/JSON)
             cli_args: CLI arguments list (default: sys.argv[1:])
             env_prefix: Environment variable prefix (default: "CONFEE_")
-            source_order: Parsing order (default: ["cli", "env", "file"])
+            source_order: Parsing order (default: ["env", "file"])
             help_flags: Help flags (default: ["--help", "-h"])
             strict: If True, forbid extra fields; if False, ignore extra fields (default: True)
 
@@ -308,8 +308,8 @@ class ConfigBase(BaseModel):
             ...     source_order=["file"]
             ... )
 
-            >>> # Use CLI + environment variables only
-            >>> config = AppConfig.load(source_order=["cli", "env"])
+            >>> # Use CLI + environment variables
+            >>> config = AppConfig.load(source_order=["cli", "env", "file"])
         """
         from .overrides import OverrideHandler
 

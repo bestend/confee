@@ -344,22 +344,22 @@ Fine-tune how configurations are loaded and merged.
 Control priority of configuration sources:
 
 ```python
-# Default order: CLI > Environment > File
-config = AppConfig.load(
-    config_file="config.yaml",
-    source_order=["cli", "env", "file"]
-)
-
-# File takes precedence
-config = AppConfig.load(
-    config_file="config.yaml",
-    source_order=["file", "cli", "env"]
-)
-
-# Only use environment and file
+# Default order: Environment > File
 config = AppConfig.load(
     config_file="config.yaml",
     source_order=["env", "file"]
+)
+
+# File takes precedence over environment
+config = AppConfig.load(
+    config_file="config.yaml",
+    source_order=["file", "env"]
+)
+
+# Include CLI args with highest priority
+config = AppConfig.load(
+    config_file="config.yaml",
+    source_order=["cli", "env", "file"]
 )
 ```
 

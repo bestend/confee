@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.5] - 2026-01-18
+
+### Changed
+- **🔧 Default source_order** — Changed default from `["cli", "env", "file"]` to `["env", "file"]`
+  - Environment variables now have highest priority by default (12-factor app style)
+  - CLI overrides require explicit opt-in: `source_order=["cli", "env", "file"]`
+  - This prevents accidental config changes from random CLI arguments
+
+---
+
 ## [0.3.4] - 2026-01-18
 
 ### Added

@@ -189,7 +189,7 @@ class TestParsingConfiguration:
         """Test parser with default source order."""
         with tempfile.TemporaryDirectory() as temp_dir:
             parser = ConfigParser(temp_dir)
-            assert parser.source_order == ["cli", "env", "file"]
+            assert parser.source_order == ["env", "file"]
 
     def test_parser_with_custom_source_order(self):
         """Test parser with custom source order."""
@@ -241,7 +241,9 @@ class TestUnifiedParse:
     def test_parse_with_cli_args(self):
         """Test parse with CLI arguments."""
         config = OverrideHandler.parse(
-            SampleConfig, cli_args=["name=production", "debug=true", "workers=16"]
+            SampleConfig,
+            cli_args=["name=production", "debug=true", "workers=16"],
+            source_order=["cli"],
         )
         assert config.name == "production"
         assert config.debug is True
@@ -271,7 +273,11 @@ class TestUnifiedParse:
         monkeypatch.setenv("CONFEE_DEBUG", "false")
         monkeypatch.setenv("CONFEE_NAME", "env-name")
 
-        config = OverrideHandler.parse(SampleConfig, cli_args=["debug=true"])
+        config = OverrideHandler.parse(
+            SampleConfig,
+            cli_args=["debug=true"],
+            source_order=["cli", "env"],
+        )
         assert config.debug is True
 
     def test_parse_with_custom_env_prefix(self, monkeypatch):

@@ -22,7 +22,7 @@ class ConfigParser:
 
     # Supported source types for ordering
     SUPPORTED_SOURCES = {"file", "env", "cli"}
-    DEFAULT_SOURCE_ORDER = ["cli", "env", "file"]  # CLI > Env > File > defaults
+    DEFAULT_SOURCE_ORDER = ["env", "file"]  # Env > File > defaults
 
     def __init__(
         self,
@@ -36,7 +36,7 @@ class ConfigParser:
             config_dir: Directory containing configuration files
             strict: If True, enforce strict validation (forbid extra fields)
             source_order: Priority order for configuration sources.
-                         Default: ["cli", "env", "file"]
+                         Default: ["env", "file"]
                          Higher priority sources override lower priority sources.
                          Available sources: "file", "env", "cli"
 
@@ -44,8 +44,8 @@ class ConfigParser:
             ValueError: If source_order contains unsupported sources
 
         Examples:
-            >>> # CLI overrides env, env overrides file
-            >>> parser = ConfigParser("./configs", source_order=["cli", "env", "file"])
+            >>> # Env overrides file (default)
+            >>> parser = ConfigParser("./configs", source_order=["env", "file"])
 
             >>> # File only, no env/cli overrides
             >>> parser = ConfigParser("./configs", source_order=["file"])

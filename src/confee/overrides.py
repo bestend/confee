@@ -345,6 +345,19 @@ class OverrideHandler:
         return nested
 
     @staticmethod
+    def _deep_merge(
+        base: Dict[str, Any],
+        override: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        result = base.copy()
+        for key, value in override.items():
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                result[key] = OverrideHandler._deep_merge(result[key], value)
+            else:
+                result[key] = value
+        return result
+
+    @staticmethod
     def parse(
         config_class: Type[T],
         config_file: str | None = None,
@@ -365,7 +378,7 @@ class OverrideHandler:
             cli_args: Command-line arguments. Default: sys.argv[1:]
             env_prefix: Environment variable prefix. Default: "CONFEE_"
             source_order: Priority order for configuration sources.
-                         Default: ["cli", "env", "file"]
+                         Default: ["env", "file"]
                          Available: ["file", "env", "cli"]
             help_flags: Help command flags. Default: ["--help", "-h"]
             strict: If True, forbid extra fields and raise errors on validation failure
@@ -407,7 +420,7 @@ class OverrideHandler:
             cli_args = sys.argv[1:]
 
         if source_order is None:
-            source_order = ["cli", "env", "file"]
+            source_order = ["env", "file"]
 
         if help_flags is None:
             help_flags = ["--help", "-h"]
@@ -489,15 +502,12 @@ class OverrideHandler:
         if "cli" in source_order:
             configs_by_source["cli"] = OverrideHandler.parse_overrides(filtered_cli_args)
 
-        # Merge configurations according to source_order (reverse order for priority)
         merged_config: Dict[str, Any] = {}
         for source in reversed(source_order):
-            merged_config.update(configs_by_source[source])
+            source_config = configs_by_source[source]
+            nested_config = OverrideHandler._flatten_to_nested(source_config)
+            merged_config = OverrideHandler._deep_merge(merged_config, nested_config)
 
-        # Convert flat dotted keys to nested structure (a.b.c -> {a: {b: {c: value}}})
-        merged_config = OverrideHandler._flatten_to_nested(merged_config)
-
-        # Create configuration instance
         try:
             return config_class(**merged_config)
         except Exception as e:

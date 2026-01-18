@@ -355,3 +355,326 @@ class TestFlattenToNested:
         flat = {"a.b": "value", "a.b.c": "nested"}
         with pytest.raises(ValueError, match="is not a dict"):
             OverrideHandler._flatten_to_nested(flat)
+
+
+class NestedDatabaseConfig(ConfigBase):
+    host: str = "localhost"
+    port: int = 5432
+    username: str = "user"
+    password: str = "pass"
+
+
+class NestedAuthConfig(ConfigBase):
+    enabled: bool = True
+    secret: str = "default_secret"
+
+
+class NestedAppConfig(ConfigBase):
+    name: str = "app"
+    database: NestedDatabaseConfig = NestedDatabaseConfig()
+    auth: NestedAuthConfig = NestedAuthConfig()
+
+
+class TestDoubleUnderscoreEnvVar:
+    """Test double underscore (__) to dot conversion for nested env vars."""
+
+    def test_env_double_underscore_converts_to_dot(self):
+        os.environ["MYAPP_DATABASE__HOST"] = "prod.db"
+        os.environ["MYAPP_DATABASE__PORT"] = "3306"
+        try:
+            overrides = OverrideHandler.get_env_overrides(prefix="MYAPP_")
+            assert overrides["database.host"] == "prod.db"
+            assert overrides["database.port"] == "3306"
+        finally:
+            del os.environ["MYAPP_DATABASE__HOST"]
+            del os.environ["MYAPP_DATABASE__PORT"]
+
+    def test_env_single_underscore_preserved(self):
+        os.environ["MYAPP_SECRET_KEY"] = "abc123"
+        try:
+            overrides = OverrideHandler.get_env_overrides(prefix="MYAPP_")
+            assert overrides["secret_key"] == "abc123"
+        finally:
+            del os.environ["MYAPP_SECRET_KEY"]
+
+    def test_env_mixed_underscore_patterns(self):
+        os.environ["MYAPP_AUTH__CLIENT_SECRET"] = "secret123"
+        try:
+            overrides = OverrideHandler.get_env_overrides(prefix="MYAPP_")
+            assert overrides["auth.client_secret"] == "secret123"
+        finally:
+            del os.environ["MYAPP_AUTH__CLIENT_SECRET"]
+
+    def test_env_triple_underscore_converts_correctly(self):
+        os.environ["MYAPP_A___B"] = "value"
+        try:
+            overrides = OverrideHandler.get_env_overrides(prefix="MYAPP_")
+            assert overrides["a._b"] == "value"
+        finally:
+            del os.environ["MYAPP_A___B"]
+
+    def test_env_deep_nesting(self):
+        os.environ["MYAPP_A__B__C__D"] = "deep"
+        try:
+            overrides = OverrideHandler.get_env_overrides(prefix="MYAPP_")
+            assert overrides["a.b.c.d"] == "deep"
+        finally:
+            del os.environ["MYAPP_A__B__C__D"]
+
+
+class TestDeepMerge:
+    """Test _deep_merge functionality."""
+
+    def test_deep_merge_simple(self):
+        base = {"a": 1, "b": 2}
+        override = {"b": 3, "c": 4}
+        result = OverrideHandler._deep_merge(base, override)
+        assert result == {"a": 1, "b": 3, "c": 4}
+
+    def test_deep_merge_nested(self):
+        base = {"a": {"x": 1, "y": 2}, "b": 3}
+        override = {"a": {"y": 20, "z": 30}}
+        result = OverrideHandler._deep_merge(base, override)
+        assert result == {"a": {"x": 1, "y": 20, "z": 30}, "b": 3}
+
+    def test_deep_merge_override_replaces_non_dict(self):
+        base = {"a": {"x": 1}}
+        override = {"a": "scalar"}
+        result = OverrideHandler._deep_merge(base, override)
+        assert result == {"a": "scalar"}
+
+    def test_deep_merge_nested_replaces_scalar(self):
+        base = {"a": "scalar"}
+        override = {"a": {"x": 1}}
+        result = OverrideHandler._deep_merge(base, override)
+        assert result == {"a": {"x": 1}}
+
+
+class TestFileEnvMergeIntegration:
+    """Test merging file config (nested) with env config (flat) - the bug fix."""
+
+    def test_file_and_env_merge_no_conflict(self, tmp_path):
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+name: myapp
+database:
+  host: localhost
+  port: 5432
+auth:
+  enabled: true
+""")
+        os.environ["TEST_DATABASE__PASSWORD"] = "secret123"
+        os.environ["TEST_AUTH__SECRET"] = "my_secret"
+        try:
+            config = OverrideHandler.parse(
+                NestedAppConfig,
+                config_file=str(config_file),
+                cli_args=[],
+                env_prefix="TEST_",
+                source_order=["file", "env"],
+            )
+            assert config.name == "myapp"
+            assert config.database.host == "localhost"
+            assert config.database.port == 5432
+            assert config.database.password == "secret123"
+            assert config.auth.enabled is True
+            assert config.auth.secret == "my_secret"
+        finally:
+            del os.environ["TEST_DATABASE__PASSWORD"]
+            del os.environ["TEST_AUTH__SECRET"]
+
+    def test_env_overrides_file_values(self, tmp_path):
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+name: myapp
+database:
+  host: localhost
+  port: 5432
+""")
+        os.environ["TEST_DATABASE__HOST"] = "prod.db"
+        os.environ["TEST_DATABASE__PORT"] = "3306"
+        try:
+            config = OverrideHandler.parse(
+                NestedAppConfig,
+                config_file=str(config_file),
+                cli_args=[],
+                env_prefix="TEST_",
+                source_order=["env", "file"],
+            )
+            assert config.database.host == "prod.db"
+            assert config.database.port == 3306
+        finally:
+            del os.environ["TEST_DATABASE__HOST"]
+            del os.environ["TEST_DATABASE__PORT"]
+
+    def test_file_overrides_env_values(self, tmp_path):
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+name: myapp
+database:
+  host: file.db
+  port: 5432
+""")
+        os.environ["TEST_DATABASE__HOST"] = "env.db"
+        os.environ["TEST_DATABASE__PORT"] = "3306"
+        try:
+            config = OverrideHandler.parse(
+                NestedAppConfig,
+                config_file=str(config_file),
+                cli_args=[],
+                env_prefix="TEST_",
+                source_order=["file", "env"],
+            )
+            assert config.database.host == "file.db"
+            assert config.database.port == 5432
+        finally:
+            del os.environ["TEST_DATABASE__HOST"]
+            del os.environ["TEST_DATABASE__PORT"]
+
+    def test_cli_overrides_env_and_file(self, tmp_path):
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+name: myapp
+database:
+  host: localhost
+  port: 5432
+""")
+        os.environ["TEST_DATABASE__HOST"] = "env.db"
+        try:
+            config = OverrideHandler.parse(
+                NestedAppConfig,
+                config_file=str(config_file),
+                cli_args=["database.host=cli.db"],
+                env_prefix="TEST_",
+                source_order=["cli", "env", "file"],
+            )
+            assert config.database.host == "cli.db"
+        finally:
+            del os.environ["TEST_DATABASE__HOST"]
+
+    def test_source_order_file_env_priority(self, tmp_path):
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+database:
+  host: file.db
+""")
+        os.environ["TEST_DATABASE__HOST"] = "env.db"
+        try:
+            config = OverrideHandler.parse(
+                NestedAppConfig,
+                config_file=str(config_file),
+                cli_args=[],
+                env_prefix="TEST_",
+                source_order=["file", "env"],
+            )
+            assert config.database.host == "file.db"
+        finally:
+            del os.environ["TEST_DATABASE__HOST"]
+
+    def test_source_order_env_file_priority(self, tmp_path):
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+database:
+  host: file.db
+""")
+        os.environ["TEST_DATABASE__HOST"] = "env.db"
+        try:
+            config = OverrideHandler.parse(
+                NestedAppConfig,
+                config_file=str(config_file),
+                cli_args=[],
+                env_prefix="TEST_",
+                source_order=["env", "file"],
+            )
+            assert config.database.host == "env.db"
+        finally:
+            del os.environ["TEST_DATABASE__HOST"]
+
+    def test_multiple_nested_sections_merge(self, tmp_path):
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+name: myapp
+database:
+  host: localhost
+  username: admin
+auth:
+  enabled: false
+""")
+        os.environ["TEST_DATABASE__PORT"] = "3306"
+        os.environ["TEST_DATABASE__PASSWORD"] = "secret"
+        os.environ["TEST_AUTH__ENABLED"] = "true"
+        os.environ["TEST_AUTH__SECRET"] = "jwt_secret"
+        try:
+            config = OverrideHandler.parse(
+                NestedAppConfig,
+                config_file=str(config_file),
+                cli_args=[],
+                env_prefix="TEST_",
+                source_order=["file", "env"],
+            )
+            assert config.name == "myapp"
+            assert config.database.host == "localhost"
+            assert config.database.port == 3306
+            assert config.database.username == "admin"
+            assert config.database.password == "secret"
+            assert config.auth.enabled is False
+            assert config.auth.secret == "jwt_secret"
+        finally:
+            del os.environ["TEST_DATABASE__PORT"]
+            del os.environ["TEST_DATABASE__PASSWORD"]
+            del os.environ["TEST_AUTH__ENABLED"]
+            del os.environ["TEST_AUTH__SECRET"]
+
+    def test_env_only_no_file(self):
+        os.environ["TEST_NAME"] = "envapp"
+        os.environ["TEST_DATABASE__HOST"] = "env.db"
+        os.environ["TEST_DATABASE__PORT"] = "5433"
+        try:
+            config = OverrideHandler.parse(
+                NestedAppConfig,
+                config_file=None,
+                cli_args=[],
+                env_prefix="TEST_",
+                source_order=["env"],
+            )
+            assert config.name == "envapp"
+            assert config.database.host == "env.db"
+            assert config.database.port == 5433
+        finally:
+            del os.environ["TEST_NAME"]
+            del os.environ["TEST_DATABASE__HOST"]
+            del os.environ["TEST_DATABASE__PORT"]
+
+    def test_all_three_sources_merge(self, tmp_path):
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+name: fileapp
+database:
+  host: file.db
+  port: 5432
+  username: file_user
+  password: file_pass
+auth:
+  enabled: false
+  secret: file_secret
+""")
+        os.environ["TEST_DATABASE__HOST"] = "env.db"
+        os.environ["TEST_AUTH__ENABLED"] = "true"
+        try:
+            config = OverrideHandler.parse(
+                NestedAppConfig,
+                config_file=str(config_file),
+                cli_args=["database.port=9999", "auth.secret=cli_secret"],
+                env_prefix="TEST_",
+                source_order=["cli", "env", "file"],
+            )
+            assert config.name == "fileapp"
+            assert config.database.host == "env.db"
+            assert config.database.port == 9999
+            assert config.database.username == "file_user"
+            assert config.database.password == "file_pass"
+            assert config.auth.enabled is True
+            assert config.auth.secret == "cli_secret"
+        finally:
+            del os.environ["TEST_DATABASE__HOST"]
+            del os.environ["TEST_AUTH__ENABLED"]

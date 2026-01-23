@@ -29,6 +29,8 @@ Examples:
     >>> config.save_schema("schema.json")
 """
 
+__version__ = "0.0.dev"  # Auto-updated by GitHub Actions when tag is pushed
+
 # Core classes
 # Async support
 from .async_loader import (

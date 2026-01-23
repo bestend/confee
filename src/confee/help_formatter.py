@@ -151,14 +151,14 @@ class HelpFormatter:
         try:
             from pydantic_core import PydanticUndefined
 
-            _PUD = PydanticUndefined  # type: ignore[assignment]
+            _PUD = PydanticUndefined
         except Exception:
             try:
-                from pydantic import PydanticUndefined  # type: ignore[no-redef]
+                from pydantic import PydanticUndefined
 
-                _PUD = PydanticUndefined  # type: ignore[assignment]
+                _PUD = PydanticUndefined
             except Exception:
-                _PUD = object()  # type: ignore[assignment]
+                _PUD = object()
 
         # 1) Prioritize default_factory
         if getattr(field, "default_factory", None) is not None:

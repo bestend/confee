@@ -267,7 +267,7 @@ class SchemaValidator:
         """
         try:
             # Try jsonschema if available
-            import jsonschema
+            import jsonschema  # type: ignore[unresolved-import]
 
             validator = jsonschema.Draft202012Validator(self.schema)
             errors = list(validator.iter_errors(data))

@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Type, TypeVar
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 
 from .config import ConfigBase
 
